@@ -1,0 +1,18 @@
+Notes 
+
+Thursday September 17, 2015
+
+Added preprocessing
+ - filtered for students taking at least 10 courses
+ - filtered for courses having at least 20 grades
+
+Error creating pivot table due to duplicate entries
+ - need to filter for student retaking courses
+ - temporarily done by groupby then .last()
+
+Resulting Matrix.shape = (60737, 4007)
+
+Still need to
+ - install cvxpy with -llapack or PYTHONPATH issue
+ - create a list of missing entries to ignore
+ - create a function to calculate frobenius norm with missing entries

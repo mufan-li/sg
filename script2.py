@@ -1,12 +1,24 @@
+'''
+Script to test a subset of data
+'''
+
 import pandas as pd
 import numpy as np
 
-df1 = pd.DataFrame( { 
-	"Name" : ["Alice", "Bob", "Mallory", "Mallory", "Bob" , "Mallory"] , 
-	"City" : ["Seattle", "Seattle", "Portland",\
-	"Seattle", "Seattle", "Portland"] } )
+execfile('preprocess.py')
 
-g1 = df1.groupby( "Name" ).count()
-g2 = g1.add_suffix('_Count').reset_index()
+# sgdata_test = sgdata[:50]
+# sgdata_pivot = sgdata.pivot(index='ID', \
+# 				columns='COURSE', values='GRADE')
 
+# sgdata_matrix = np.asarray(sgdata_pivot)
 
+sgGroup = sgdata[['ID','COURSE','GRADE']].groupby(['ID', 'COURSE'])
+# sgAgg = sgGroup.count().reset_index()
+# sgAgg[sgAgg['GRADE']>1]
+
+sgdataFilter = sgGroup.last().reset_index()
+sgdata_pivot = sgdataFilter.pivot(index='ID', \
+				columns='COURSE', values='GRADE')
+
+sgdata_matrix = np.asarray(sgdata_pivot)
