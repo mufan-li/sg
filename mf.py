@@ -15,7 +15,7 @@ from sg_functions import *
 
 # set parameters
 regC1, regC2 = 1, 1 # regularization
-k = 5 # decomposition rank
+k = 20 # decomposition rank
 n, m = sgdata_matrix.shape
 
 from glrm.loss import QuadraticLoss
@@ -45,9 +45,9 @@ print 'Frobenius Error: ' + str(round(error,2))
 ind = np.where(A>0)
 hData = abs(A-A_hat).round(0)[ind]
 
-n, bins, patches = P.hist(hData, 50, normed=1, histtype='stepfilled')
+n, bins, patches = P.hist(hData, 20, normed=1, histtype='stepfilled')
 P.setp(patches, 'facecolor', 'g', 'alpha', 0.75)
-P.figure()
+# P.figure()
 P.show()
 
 
