@@ -5,6 +5,7 @@ Apply Matrix Factorization on variable 'sgdata_matrix'
 import numpy as np
 import numpy.linalg as la
 import numpy.random as rd
+import pylab as P
 import time
 
 # general low rank matrix 
@@ -14,7 +15,7 @@ from sg_functions import *
 
 # set parameters
 regC1, regC2 = 1, 1 # regularization
-k = 1 # decomposition rank
+k = 5 # decomposition rank
 n, m = sgdata_matrix.shape
 
 from glrm.loss import QuadraticLoss
@@ -38,5 +39,20 @@ print 'time:' + str(round(end_time-start_time,1)) + 'seconds'
 X, Y = model.factors()
 A_hat = model.predict()
 
-error = fbnorm(A_hat - np.hstack(A_list), A_miss) / (n*m)
-print 'MSE: ' + str(round(error,2))
+error = fbnorm(A_hat - np.hstack(A_list), A_miss)
+print 'Frobenius Error: ' + str(round(error,2))
+
+ind = np.where(A>0)
+hData = abs(A-A_hat).round(0)[ind]
+
+n, bins, patches = P.hist(hData, 50, normed=1, histtype='stepfilled')
+P.setp(patches, 'facecolor', 'g', 'alpha', 0.75)
+P.figure()
+P.show()
+
+
+
+
+
+
+
