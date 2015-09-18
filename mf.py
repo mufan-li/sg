@@ -28,11 +28,13 @@ miss = [A_miss]
 start_time = time.time()
 
 model = GLRM(A_list, loss, regX, regY, k, miss)
-A_hat = model.predict()
-X, Y = model.factors()
+model.fit()
 
 end_time = time.time()
 print 'time:' + str(round(end_time-start_time,1)) + 'seconds'
+
+X, Y = model.factors()
+A_hat = model.predict()
 
 error = fbnorm(A_hat - np.hstack(A_list)) / (n*m)
 print 'MSE: ' + str(round(error,2))
