@@ -9,6 +9,8 @@ import time
 
 # general low rank matrix 
 from glrm import GLRM
+# helper functions
+from sg_functions import *
 
 # set parameters
 regC1, regC2 = 1, 1 # regularization
@@ -21,7 +23,7 @@ from glrm.reg import QuadraticReg
 loss = [QuadraticLoss]
 regX, regY = [QuadraticReg(regC1), QuadraticReg(regC2)]
 
-A, Amiss = find_missing_entries(sgdata_matrix)
+A, A_miss = find_missing_entries(sgdata_matrix)
 A_list = [A]
 miss = [A_miss]
 
@@ -36,5 +38,5 @@ print 'time:' + str(round(end_time-start_time,1)) + 'seconds'
 X, Y = model.factors()
 A_hat = model.predict()
 
-error = fbnorm(A_hat - np.hstack(A_list)) / (n*m)
+error = fbnorm(A_hat - np.hstack(A_list), A_miss) / (n*m)
 print 'MSE: ' + str(round(error,2))
