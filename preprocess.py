@@ -6,11 +6,14 @@ Script to load and filter out data
 '''
 
 ## required imports
-# import pandas as pd
-# import numpy as np
+import pandas as pd
+import numpy as np
 
 # import .csv file of data
 sgdata_raw = pd.read_csv('allgradesanon2.csv')
+
+# filter for only math courses
+sgdata_raw = sgdata_raw[sgdata_raw['DEPT']=='MAT']
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())

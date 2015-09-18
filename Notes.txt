@@ -1,5 +1,14 @@
 Notes 
 
+################################################################
+
+Friday September 18, 2015
+
+Fixed cvxpy issue
+Added helper functions
+
+################################################################
+
 Thursday September 17, 2015
 
 Added preprocessing
