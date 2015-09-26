@@ -16,7 +16,7 @@ from sg_functions import *
 # set parameters
 regC1, regC2 = 1, 1 # regularization
 k = 20 # decomposition rank
-n, m = sgdata_matrix.shape
+N, M = sgdata_matrix.shape
 
 from glrm.loss import QuadraticLoss
 from glrm.reg import QuadraticReg
