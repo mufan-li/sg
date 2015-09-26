@@ -2,3 +2,7 @@
 *.csv
 
 *.pyc
+
+*.pkl*
+
+*.png
