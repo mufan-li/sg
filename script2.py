@@ -9,6 +9,7 @@ import numpy.random as rd
 
 # helper functions
 from sg_functions import *
+from rbm import *
 
 # load and filter the data file
 execfile('preprocess.py')
@@ -16,14 +17,18 @@ execfile('preprocess.py')
 # filter for repeated courses
 # use group.last() assuming the last is most recent
 sgGroup = sgdata[['ID','COURSE','GRADE']].groupby(['ID', 'COURSE'])
-# sgAgg = sgGroup.count().reset_index()
-# sgAgg[sgAgg['GRADE']>1]
 
 sgdataFilter = sgGroup.last().reset_index()
 sgdata_pivot = sgdataFilter.pivot(index='ID', \
 				columns='COURSE', values='GRADE')
 
 sgdata_matrix = np.asarray(sgdata_pivot)
-# print sgdata_matrix[:5,:5]
+# set to zero
+sgdata_matrix[np.isnan(sgdata_matrix)] = 0
+sgdata_matrix = sgdata_matrix/100. # rescale to [0,1]
 
-execfile('mf.py')
+# matrix factorization
+# execfile('mf.py')
+
+# RBM
+run_rbm(sgdata_matrix, training_epochs = 100)

@@ -2,6 +2,33 @@ Notes
 
 ################################################################
 
+Sunday September 27, 2015
+
+Issue with RBM
+ - need to set missing inputs to zero
+ - need to separate cost per sample
+ 	- apply xnm to gradient per sample before taking mean
+
+batch_size = 10
+n_hidden = 20
+xdim = 66
+
+costs.shape = (10,1)
+
+################################################################
+
+Saturday September 26, 2015
+
+Added RBM
+ - tested with MNIST
+
+Modifying RBM
+ - add xnm var
+ - modify cost updates
+ 	- error induced by tensor type change in update
+
+################################################################
+
 Friday September 18, 2015
 
 Fixed cvxpy issue

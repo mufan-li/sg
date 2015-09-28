@@ -16,10 +16,17 @@ from theano.tensor.shared_randomstreams import RandomStreams
 
 from sg_functions import *
 
+'''
+#############
+# RBM class #
+#############
+'''
+
 class RBM(object):
 	def __init__(
 		self,
 		input=None,
+		input_nm=None,
 		n_visible=784,
 		n_hidden=500,
 		W=None,
@@ -53,26 +60,31 @@ class RBM(object):
 		if hbias is None:
 			hbias = theano.shared(
 				value=np.zeros(
-					n_hidden,
-					dtype=theano.config.floatX
+					(1,n_hidden),
+					dtype=theano.config.floatX,
 				),
 				name='hbias',
-				borrow=True
+				borrow=True,
+				broadcastable=[True,False]
 			)
 
 		if vbias is None:
 			vbias = theano.shared(
 				value=np.zeros(
-					n_visible,
+					(1,n_visible),
 					dtype=theano.config.floatX
 				),
 				name='vbias',
-				borrow=True
+				borrow=True,
+				broadcastable=[True,False]
 			)
 
 		self.input = input
 		if not input:
 			self.input = T.matrix('input')
+		self.input_nm = input_nm
+		if not input_nm:
+			self.input = T.matrix('input_nm')
 
 		self.W = W
 		self.hbias = hbias
@@ -83,9 +95,9 @@ class RBM(object):
 	def free_energy(self, v_sample):
 		# F = log sum_h exp(-E(v,h))
 		wx_b = T.dot(v_sample, self.W) + self.hbias
-		vbias_term = T.dot(v_sample, self.vbias)
-		hidden_term = T.sum(T.log(1 + T.exp(wx_b)), axis=1)
-		return -hidden_term -vbias_term
+		vbias_term = T.dot(v_sample, self.vbias.T)
+		hidden_term = T.log(1 + T.exp(wx_b))
+		return (-vbias_term-hidden_term)
 
 	def propup(self, vis):
 		pre_sigmoid_activation = T.dot(vis, self.W) + self.hbias
@@ -125,9 +137,24 @@ class RBM(object):
 		return [pre_sigmoid_h1, h1_mean, h1_sample,
 				pre_sigmoid_v1, v1_mean, v1_sample]
 
+	# for scan
+	def each_grad(self, x, xnm, chain_end):
+		# still need to multiple xnm
+		# print cost.ndim
+		costs = self.free_energy(x) - self.free_energy(chain_end)
+		cost = T.sum(costs)
+
+		gW = (T.grad(cost, self.W, \
+						consider_constant=[chain_end]).T * xnm).T
+		ghbias = T.grad(cost, self.hbias, \
+					consider_constant=[chain_end])
+		gvbias = (T.grad(cost, self.vbias, \
+						consider_constant=[chain_end]) * xnm)
+		return gW, ghbias, gvbias
+
 	def get_cost_updates(self, lr=0.1, persistent=None, k=1):
 		pre_sigmoid_ph, ph_mean, ph_sample = \
-			self.sample_h_given_v(self.input)
+			self.sample_h_given_v(self.input*self.input_nm)
 
 		if persistent is None:
 			chain_start = ph_sample
@@ -153,15 +180,34 @@ class RBM(object):
 
 		chain_end = nv_samples[-1]
 
-		cost = T.mean(self.free_energy(self.input)) - T.mean(
-				self.free_energy(chain_end))
+		# calc within scan
+		# costs = self.free_energy(self.input) -\
+		# 			self.free_energy(chain_end)
 
-		gparams = T.grad(cost, self.params, \
-					consider_constant=[chain_end])
+		# return all the gradients
+		(
+			[gW_vals, ghbias_vals, gvbias_vals],
+			updates2
+		) = theano.scan(
+				self.each_grad,
+				outputs_info = None,
+				sequences = [self.input, self.input_nm, chain_end]
+		)
 
-		for gparam, param in zip(gparams, self.params):
-			updates[param] = param - gparam * T.cast(
-						lr, dtype = theano.config.floatX)
+		gW = T.sum(gW_vals,0)
+		ghbias = T.sum(ghbias_vals,0)
+		gvbias = T.sum(gvbias_vals,0)
+		print self.vbias.broadcastable
+		# gvbias = T.patternbroadcast(gvbias,self.vbias.broadcastable)
+		print gvbias.broadcastable
+
+		updates[self.W] = self.W - gW * \
+						T.cast(lr, dtype=theano.config.floatX)
+		updates[self.vbias] = self.vbias - \
+							gvbias * \
+							T.cast(lr, dtype=theano.config.floatX)
+		updates[self.hbias] = self.hbias - ghbias * \
+							T.cast(lr, dtype=theano.config.floatX)
 
 		if persistent:
 			updates[persistent] = nh_samples[-1]
@@ -203,23 +249,29 @@ class RBM(object):
 
 		return cross_entropy
 
+'''
+#####################
+# run RBM on grades #
+#####################
+'''
 
-
-def test_rbm(learning_rate = 0.1, training_epochs=15,
-			dataset='mnist.pkl.gz', batch_size=20,
-			n_chains=20, n_samples=10, output_folder='rbm_plots',
-			n_hidden=500):
-	# need load function from logistic_sgd.py
-	datasets = load_mnist_data(dataset)
-
-	train_set_x, train_set_y = datasets[0]
-	test_set_x, test_set_y = datasets[2]
+def run_rbm(dataset, learning_rate = 0.1, training_epochs=1,
+			batch_size=10,
+			n_chains=15, n_samples=10, output_folder='sg_output',
+			n_hidden=20):
+	# ~80% of data for training
+	train_idx = dataset.shape[0]*4/5
+	train_set_x = shared_data(dataset[:train_idx, :])
+	train_not_miss = shared_data( dataset[:train_idx, :]==0 )
+	test_set_x = shared_data(dataset[train_idx:, :])
+	test_not_miss = shared_data( dataset[train_idx:, :]==0 )
 
 	n_train_batches = train_set_x.get_value(borrow=True).shape[0]\
 			/ batch_size
 
 	index = T.lscalar()
 	x = T.matrix('x')
+	xnm = T.matrix('xnm') # for not_miss matrix
 
 	rng = numpy.random.RandomState(123)
 	theano_rng = RandomStreams(rng.randint(2 ** 30))
@@ -228,7 +280,7 @@ def test_rbm(learning_rate = 0.1, training_epochs=15,
 							dtype=theano.config.floatX),
 						borrow=True)
 
-	rbm = RBM(input=x, n_visible= 28 * 28,
+	rbm = RBM(input=x, input_nm=xnm, n_visible= dataset.shape[1],
 			n_hidden=n_hidden, numpy_rng=rng, theano_rng=theano_rng)
 
 	cost, updates = rbm.get_cost_updates(lr=learning_rate,
@@ -245,7 +297,8 @@ def test_rbm(learning_rate = 0.1, training_epochs=15,
 		cost,
 		updates = updates,
 		givens = {
-			x: train_set_x[index* batch_size : (index+1)* batch_size]
+			x: train_set_x[index* batch_size : (index+1)* batch_size],
+			xnm: train_not_miss[index* batch_size:(index+1)*batch_size]
 		},
 		name = 'train_rbm'
 	)
@@ -262,86 +315,10 @@ def test_rbm(learning_rate = 0.1, training_epochs=15,
 
 		print 'Training epoch %d, cost is ' % epoch, np.mean(mean_cost)
 
-		plotting_start = timeit.default_timer()
-
-		image = Image.fromarray(
-			tile_raster_images(
-				X = rbm.W.get_value(borrow=True).T,
-				img_shape = (28, 28),
-				tile_shape = (10, 10),
-				tile_spacing = (1, 1)
-			)
-		)
-		image.save('filters_at_epoch_%i.png' % epoch)
-		plotting_stop = timeit.default_timer()
-		plotting_time += (plotting_stop - plotting_start)
-
 	end_time = timeit.default_timer()
-	pretraining_time = (end_time - start_time) - plotting_time
+	pretraining_time = (end_time - start_time)
 
 	print ('Training took %f minutes' % (pretraining_time / 60.))
-
-	# sampling from RBM
-	number_of_test_samples = test_set_x.get_value(borrow=True).shape[0]
-
-	test_idx = rng.randint(number_of_test_samples - n_chains)
-	persistent_vis_chain = theano.shared(
-		np.asarray(
-			test_set_x.get_value(borrow=True)[test_idx:\
-				test_idx + n_chains],
-			dtype=theano.config.floatX
-		)
-	)
-
-	plot_every = 1000
-
-	(
-		[
-			presig_hids,
-			hid_mfs,
-			hid_samples,
-			presig_vis,
-			vis_mfs,
-			vis_samples
-		],
-		updates
-	) = theano.scan(
-		rbm.gibbs_vhv,
-		outputs_info = [None, None, None, None, None, \
-			persistent_vis_chain],
-			n_steps=plot_every
-	)
-
-	updates.update({persistent_vis_chain: vis_samples[-1]})
-
-	sample_fn = theano.function(
-		[],
-		[
-			vis_mfs[-1],
-			vis_samples[-1]
-		],
-		updates = updates,
-		name = 'sample_fn'
-	)
-
-	image_data = np.zeros(
-		(29 * n_samples + 1, 29 * n_chains - 1),
-		dtype='uint8'
-	)
-	for idx in xrange(n_samples):
-		vis_mf, vis_sample = sample_fn()
-		print ' ... plot sampling ', idx
-		image_data[29 * idx: 29 * idx + 28, :] = \
-			tile_raster_images(
-				X = vis_mf,
-				img_shape = (28, 28),
-				tile_shape = (1, n_chains),
-				tile_spacing = (1, 1)
-			)
-
-		image = Image.fromarray(image_data)
-		image.save('samples.png')
-		os.chdir('../')
 
 if __name__ == '__main__':
 	test_rbm()

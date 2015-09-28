@@ -37,6 +37,15 @@ def fbnorm(A, A_miss):
 
 	return fn
 
+def shared_data(data_x, borrow=True):
+		''' share only one data variable
+		'''
+		data_x
+		shared_x = theano.shared(numpy.asarray(data_x,
+									   dtype=theano.config.floatX),
+								 borrow=borrow)
+		return shared_x
+
 def load_mnist_data(dataset):
 	''' Loads the dataset
 
