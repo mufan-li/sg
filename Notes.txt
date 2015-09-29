@@ -2,6 +2,19 @@ Notes
 
 ################################################################
 
+Monday September 28, 2015
+
+issue with scan 
+ - need to only pass sequence of variables not functions
+ - create cost within scan function
+
+try prediction
+consider using sparse matricies for full data size
+also note this is not the same training procedure as [Salakhu. 2007]
+ - the Gibbs chain involves the entire input space
+
+################################################################
+
 Sunday September 27, 2015
 
 Issue with RBM

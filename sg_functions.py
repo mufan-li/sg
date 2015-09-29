@@ -17,25 +17,32 @@ def find_missing_entries(A, missing_val = 0):
 	# 	A - a matrix A with its missing entries replaced
 	#	A_miss - a list of tuples for all missing indicies
 
-	v_miss = np.where(np.isnan(A))
-	A_miss = [(v1,v2) for (v1,v2) in zip(v_miss[0],v_miss[1])]
+	v_miss = (A==0)
+	v2_miss = np.where(v_miss)
+	A_miss = [(v1,v2) for (v1,v2) in zip(v2_miss[0],v2_miss[1])]
 	A[v_miss] = missing_val
 
-	return A, A_miss
+	return A, A_miss, v_miss
 
-def fbnorm(A, A_miss):
+def fbnorm(A, v_miss):
 	# inputs:
 	# 	A - a matrix A with missing entries
-	#	A_miss - missing entries of A
+	#	v_miss - missing entries of A
 	# outputs:
 	#	fn - the Frobenius norm with missing entries
 
-	v_miss = (np.asarray([v[0] for v in A_miss]), \
-				np.asarray([v[1] for v in A_miss]))
 	A[v_miss] = 0
 	fn = la.norm(A)
 
 	return fn
+
+def rmse(A, A_hat, v_miss):
+	# inputs:
+	# 	A - a matrix A with missing entries
+	#	v_miss - missing entries of A
+	# outputs:
+	#	er - the RMSE of A with missing entries
+	return np.sqrt(np.mean(np.square((A - A_hat)[~v_miss])))
 
 def shared_data(data_x, borrow=True):
 		''' share only one data variable

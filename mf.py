@@ -15,7 +15,7 @@ from sg_functions import *
 
 # set parameters
 regC1, regC2 = 1, 1 # regularization
-k = 20 # decomposition rank
+k = 5 # decomposition rank
 N, M = sgdata_matrix.shape
 
 from glrm.loss import QuadraticLoss
@@ -24,7 +24,7 @@ from glrm.reg import QuadraticReg
 loss = [QuadraticLoss]
 regX, regY = [QuadraticReg(regC1), QuadraticReg(regC2)]
 
-A, A_miss = find_missing_entries(sgdata_matrix)
+A, A_miss, v_miss = find_missing_entries(sgdata_matrix)
 A_list = [A]
 miss = [A_miss]
 
@@ -39,16 +39,21 @@ print 'time:' + str(round(end_time-start_time,1)) + 'seconds'
 X, Y = model.factors()
 A_hat = model.predict()
 
-error = fbnorm(A_hat - np.hstack(A_list), A_miss)
+error = fbnorm(A_hat - np.hstack(A_list), v_miss)
 print 'Frobenius Error: ' + str(round(error,2))
+error2 = rmse(A, A_hat, v_miss)
+print 'RMSE: ' + str(round(error2,2))
+
+print A[~v_miss][:10]
+print A_hat[~v_miss][:10].round()
 
 ind = np.where(A>0)
 hData = abs(A-A_hat).round(0)[ind]
 
 n, bins, patches = P.hist(hData, 20, normed=1, histtype='stepfilled')
-P.setp(patches, 'facecolor', 'g', 'alpha', 0.75)
+# P.setp(patches, 'facecolor', 'g', 'alpha', 0.75)
 # P.figure()
-P.show()
+# P.show()
 
 
 

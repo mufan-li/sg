@@ -92,6 +92,9 @@ class RBM(object):
 		self.theano_rng = theano_rng
 		self.params = [self.W, self.hbias, self.vbias]
 
+		h_pre, self.h_mean = self.propup(input)
+		v_pre, self.v_mean = self.propdown(self.h_mean)
+
 	def free_energy(self, v_sample):
 		# F = log sum_h exp(-E(v,h))
 		wx_b = T.dot(v_sample, self.W) + self.hbias
@@ -152,13 +155,15 @@ class RBM(object):
 						consider_constant=[chain_end]) * xnm)
 		return gW, ghbias, gvbias
 
-	def get_cost_updates(self, lr=0.1, persistent=None, k=1):
+	def get_cost_updates(self, lr=0.1, mc=0.9, persistent=None, k=1):
+
 		pre_sigmoid_ph, ph_mean, ph_sample = \
 			self.sample_h_given_v(self.input*self.input_nm)
 
 		if persistent is None:
 			chain_start = ph_sample
 		else:
+			# print 'persistent ', persistent.ndim
 			chain_start = persistent
 
 		(
@@ -194,20 +199,33 @@ class RBM(object):
 				sequences = [self.input, self.input_nm, chain_end]
 		)
 
-		gW = T.sum(gW_vals,0)
-		ghbias = T.sum(ghbias_vals,0)
-		gvbias = T.sum(gvbias_vals,0)
-		print self.vbias.broadcastable
-		# gvbias = T.patternbroadcast(gvbias,self.vbias.broadcastable)
-		print gvbias.broadcastable
+		gparams = [T.sum(gW_vals,0), T.sum(ghbias_vals,0), \
+				T.sum(gvbias_vals,0)]
+		vparams = [theano.shared(np.zeros(param.get_value().shape),
+						borrow=True,
+						broadcastable=param.broadcastable)
+						for param in self.params]
 
-		updates[self.W] = self.W - gW * \
-						T.cast(lr, dtype=theano.config.floatX)
-		updates[self.vbias] = self.vbias - \
-							gvbias * \
-							T.cast(lr, dtype=theano.config.floatX)
-		updates[self.hbias] = self.hbias - ghbias * \
-							T.cast(lr, dtype=theano.config.floatX)
+		# momentum
+		update1 = [
+			(vparam, T.cast(mc, dtype=theano.config.floatX) * vparam \
+					+ T.cast(lr, dtype=theano.config.floatX) * gparam)
+			for vparam, gparam in zip(vparams, gparams)
+		]
+		# change
+		update2 = [
+			(param, param - vparam) 
+			for param, vparam in zip(self.params, vparams)
+		]
+		updates += update1 + update2
+
+		# updates[self.W] = self.W - gW * \
+		# 				T.cast(lr, dtype=theano.config.floatX)
+		# updates[self.vbias] = self.vbias - \
+		# 					gvbias * \
+		# 					T.cast(lr, dtype=theano.config.floatX)
+		# updates[self.hbias] = self.hbias - ghbias * \
+		# 					T.cast(lr, dtype=theano.config.floatX)
 
 		if persistent:
 			updates[persistent] = nh_samples[-1]
@@ -249,27 +267,38 @@ class RBM(object):
 
 		return cross_entropy
 
+
 '''
 #####################
 # run RBM on grades #
 #####################
 '''
 
-def run_rbm(dataset, learning_rate = 0.1, training_epochs=1,
+def run_rbm(dataset, learning_rate = 0.1, 
+			training_epochs=1, momentum_const=0.9,
 			batch_size=10,
 			n_chains=15, n_samples=10, output_folder='sg_output',
 			n_hidden=20):
+	
+	# input.nm is used in gradients
+	theano.config.on_unused_input = 'warn'
+
 	# ~80% of data for training
 	train_idx = dataset.shape[0]*4/5
 	train_set_x = shared_data(dataset[:train_idx, :])
-	train_not_miss = shared_data( dataset[:train_idx, :]==0 )
+	train_not_miss = shared_data( ~(dataset[:train_idx, :]==0) )
 	test_set_x = shared_data(dataset[train_idx:, :])
-	test_not_miss = shared_data( dataset[train_idx:, :]==0 )
+	test_not_miss = shared_data( ~(dataset[train_idx:, :]==0) )
+
+	# complete set
+	missing_entries = shared_data(~(dataset==0))
+	complete_set = shared_data(dataset)
 
 	n_train_batches = train_set_x.get_value(borrow=True).shape[0]\
 			/ batch_size
 
 	index = T.lscalar()
+	index_end = T.lscalar()
 	x = T.matrix('x')
 	xnm = T.matrix('xnm') # for not_miss matrix
 
@@ -283,8 +312,10 @@ def run_rbm(dataset, learning_rate = 0.1, training_epochs=1,
 	rbm = RBM(input=x, input_nm=xnm, n_visible= dataset.shape[1],
 			n_hidden=n_hidden, numpy_rng=rng, theano_rng=theano_rng)
 
+	# removed persistence
 	cost, updates = rbm.get_cost_updates(lr=learning_rate,
-						persistent=persistent_chain, k=15)
+						mc=momentum_const,
+						persistent=None, k=15)
 
 	# create directory
 	if not os.path.isdir(output_folder):
@@ -292,6 +323,7 @@ def run_rbm(dataset, learning_rate = 0.1, training_epochs=1,
 	os.chdir(output_folder)
 
 	# training
+	print '... building training function'
 	train_rbm = theano.function(
 		[index],
 		cost,
@@ -303,6 +335,46 @@ def run_rbm(dataset, learning_rate = 0.1, training_epochs=1,
 		name = 'train_rbm'
 	)
 
+	# training reconstruction
+	print '... building training error function'
+	tr_error = T.sqrt(T.sum(
+				T.square((rbm.v_mean - rbm.input)*rbm.input_nm\
+					)/T.sum(rbm.input_nm))
+				)
+	train_error = theano.function(
+		[],
+		[tr_error],
+		givens = {
+			x: train_set_x,
+			xnm: train_not_miss
+		},
+		name = 'train_error'
+	)
+
+	# test reconstruction
+	print '... building test error function'
+	test_error = theano.function(
+		[],
+		[tr_error],
+		givens = {
+			x: test_set_x,
+			xnm: test_not_miss
+		},
+		name = 'test_error'
+	)
+
+	# predicting function
+	print '... building predict function'
+	predict = theano.function(
+		[],
+		rbm.v_mean,
+		givens = {
+			x: complete_set
+		},
+		name = 'predict'
+	)
+
+	print '... training'
 	plotting_time=0.
 	start_time = timeit.default_timer()
 
@@ -313,15 +385,26 @@ def run_rbm(dataset, learning_rate = 0.1, training_epochs=1,
 		for batch_index in xrange(n_train_batches):
 			mean_cost += [train_rbm(batch_index)]
 
-		print 'Training epoch %d, cost is ' % epoch, np.mean(mean_cost)
+		tr_error_data = train_error()
+		test_error_data = test_error()
+		print 'Training epoch %d, cost ' % epoch, \
+			np.mean(mean_cost).round(2), ', tr_error ', \
+			(tr_error_data[0]).round(4), \
+			', test_error ', (test_error_data[0]).round(4)
 
 	end_time = timeit.default_timer()
 	pretraining_time = (end_time - start_time)
 
 	print ('Training took %f minutes' % (pretraining_time / 60.))
 
+	# reconstruct data
+	print '... reconstructing data'
+	sgdata_predict = predict()
+
+	return np.asarray(sgdata_predict), rbm
+
 if __name__ == '__main__':
-	test_rbm()
+	print '... No tests'
 
 
 

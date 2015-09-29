@@ -29,7 +29,7 @@ def test_rbm2(learning_rate = 0.1, training_epochs=1,
 			n_chains=15, n_samples=10, output_folder='sg_output',
 			n_hidden=1):
 	#
-	dataset = np.asarray( [[2,3],[1,2],[-1,1]] )
+	dataset = np.asarray( [[0,0.5],[1,0],[0.5,1]] )
 	train_set_x = shared_data(dataset)
 	train_not_miss = shared_data(np.asarray( [[0,1],[1,0],[1,1]] ))
 
@@ -133,6 +133,33 @@ def test_rbm2(learning_rate = 0.1, training_epochs=1,
 		name = 'gh_fn'
 	)
 
+	h_mean = theano.function(
+		[index,index2],
+		rbm.h_mean,
+		givens = {
+			x: train_set_x[index: index2]
+		}
+	)
+
+	predict = theano.function(
+		[index, index2],
+		rbm.v_mean,
+		givens = {
+			x: train_set_x[index: index2]
+		},
+		name = 'predict'
+	)
+
+	rmse = theano.function(
+		[],
+		T.sqrt(T.sum(T.square((rbm.v_mean - x)*xnm))/T.sum(xnm)),
+		givens = {
+			x: train_set_x,
+			xnm: train_not_miss
+		},
+		name = 'sqr'
+	)
+
 	print 'grad W vector ', gW_fn2(0,3)
 	print 'grad W vector sum ', np.sum(gW_fn2(0,3),0)
 
@@ -143,6 +170,12 @@ def test_rbm2(learning_rate = 0.1, training_epochs=1,
 	print 'hb ', rbm.hbias.get_value()
 	print 'grad hb vector ', gh_fn(0,3)
 	print 'grad hb vector sum ', np.sum(gh_fn(0,3),0)
+
+	print 'h_mean ', np.asarray(h_mean(0,3))
+	data_predict = np.asarray(predict(0,3))
+	print 'predict ', data_predict, data_predict.shape
+
+	print 'RMSE ', rmse()
 
 if __name__ == '__main__':
 	test_rbm2()
