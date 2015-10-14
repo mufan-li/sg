@@ -35,8 +35,8 @@ sgdata_matrix = sgdata_matrix/100. # rescale to [0,1]
 # RBM
 sgdata_predict, RBM = run_rbm(sgdata_matrix, 
 						learning_rate = 1e-5, training_epochs = 100,
-						n_hidden = 100,
-						batch_size=50)
+						n_hidden = 20,
+						batch_size=20)
 # print sgdata_matrix[:5,:5]
 # print sgdata_predict[:5,:5]
 print sgdata_matrix[~missing_entries][:10]
