@@ -2,6 +2,23 @@ Notes
 
 ################################################################
 
+To-do list
+ - correct Gibbs chain
+ 	- add CD-k later
+ 		- issue with CD-1 creating empty OrderDict
+ 	- slow down learning rate
+ - Gaussian/other implementations of RBM
+ - MF in theano
+ - Auto-Encoder
+ - movie dataset
+ - hyperparameters 
+
+################################################################
+
+Wednesday Oct 14, 2015
+
+################################################################
+
 Monday September 28, 2015
 
 issue with scan 

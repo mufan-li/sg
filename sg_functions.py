@@ -53,6 +53,21 @@ def shared_data(data_x, borrow=True):
 								 borrow=borrow)
 		return shared_x
 
+
+def train_f_select(epoch, training_epochs, f_list):
+	''' selects CD-k based on epoch
+	'''
+	# inputs:
+	# 	epoch - current epoch
+	#	training_epochs - total number of epochs
+	# 	f_list - list of functions to choose from
+
+	n_functions = len(f_list)
+	n_per_function = np.ceil(training_epochs*1.0 / n_functions)
+	ind = epoch/n_per_function
+
+	return f_list[ind.astype(int)]
+
 def load_mnist_data(dataset):
 	''' Loads the dataset
 

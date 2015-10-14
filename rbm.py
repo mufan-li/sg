@@ -121,7 +121,8 @@ class RBM(object):
 	def sample_v_given_h(self, h0_sample):
 		pre_sigmoid_v1, v1_mean = self.propdown(h0_sample)
 		v1_sample = self.theano_rng.binomial(size=v1_mean.shape,
-					n=1, p=v1_mean, dtype=theano.config.floatX)
+					n=1, p=v1_mean, dtype=theano.config.floatX) * \
+						self.input_nm
 		return [pre_sigmoid_v1, v1_mean, v1_sample]
 
 	def gibbs_hvh(self, h0_sample):
@@ -313,17 +314,26 @@ def run_rbm(dataset, learning_rate = 0.1,
 			n_hidden=n_hidden, numpy_rng=rng, theano_rng=theano_rng)
 
 	# removed persistence
-	cost, updates = rbm.get_cost_updates(lr=learning_rate,
+	cost, updates = \
+					rbm.get_cost_updates(lr=learning_rate,
 						mc=momentum_const,
-						persistent=None, k=15)
+						persistent=None, k=2)
+	cost2, updates2 = \
+					rbm.get_cost_updates(lr=learning_rate,
+						mc=momentum_const,
+						persistent=None, k=10)
+	cost3, updates3 = \
+					rbm.get_cost_updates(lr=learning_rate,
+						mc=momentum_const,
+						persistent=None, k=50)
 
-	# create directory
-	if not os.path.isdir(output_folder):
-		os.makedirs(output_folder)
-	os.chdir(output_folder)
+	# # create directory
+	# if not os.path.isdir(output_folder):
+	# 	os.makedirs(output_folder)
+	# os.chdir(output_folder)
 
 	# training
-	print '... building training function'
+	print '... building training functions'
 	train_rbm = theano.function(
 		[index],
 		cost,
@@ -333,6 +343,26 @@ def run_rbm(dataset, learning_rate = 0.1,
 			xnm: train_not_miss[index* batch_size:(index+1)*batch_size]
 		},
 		name = 'train_rbm'
+	)
+	train_rbm2 = theano.function(
+		[index],
+		cost2,
+		updates = updates2,
+		givens = {
+			x: train_set_x[index* batch_size : (index+1)* batch_size],
+			xnm: train_not_miss[index* batch_size:(index+1)*batch_size]
+		},
+		name = 'train_rbm2'
+	)
+	train_rbm3 = theano.function(
+		[index],
+		cost3,
+		updates = updates3,
+		givens = {
+			x: train_set_x[index* batch_size : (index+1)* batch_size],
+			xnm: train_not_miss[index* batch_size:(index+1)*batch_size]
+		},
+		name = 'train_rbm3'
 	)
 
 	# training reconstruction
@@ -374,6 +404,20 @@ def run_rbm(dataset, learning_rate = 0.1,
 		name = 'predict'
 	)
 
+	# _, _, _, _, _, v1_sample = rbm.gibbs_vhv(x)
+	
+	# nv_samples test
+	# print '... building vsample'
+	# vsample = theano.function(
+	# 	[index],
+	# 	v1_sample,
+	# 	givens = {
+	# 		x: train_set_x[index:(index+1)],
+	# 		xnm: train_not_miss[index:(index+1)] 
+	# 	},
+	# 	name = 'vsample'
+	# )
+
 	print '... training'
 	plotting_time=0.
 	start_time = timeit.default_timer()
@@ -382,8 +426,10 @@ def run_rbm(dataset, learning_rate = 0.1,
 	for epoch in xrange(training_epochs):
 		# loop through training set
 		mean_cost = []
+		train_f = train_f_select(epoch, training_epochs,
+					[train_rbm, train_rbm2, train_rbm3] )
 		for batch_index in xrange(n_train_batches):
-			mean_cost += [train_rbm(batch_index)]
+			mean_cost += [train_f(batch_index)]
 
 		tr_error_data = train_error()
 		test_error_data = test_error()
