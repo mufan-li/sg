@@ -13,7 +13,7 @@ import numpy as np
 sgdata_raw = pd.read_csv('allgradesanon2.csv')
 
 # filter for only math courses
-# sgdata_raw = sgdata_raw[sgdata_raw['DEPT']=='MAT']
+sgdata_raw = sgdata_raw[sgdata_raw['DEPT']=='MAT']
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())

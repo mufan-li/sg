@@ -11,6 +11,14 @@ To-do list
 
 ################################################################
 
+Thursday Oct 15, 2015
+
+Gaussian input RBM
+ - need to fix reconstruction exploding
+ 	- consider truncated normal
+
+################################################################
+
 Wednesday Oct 14, 2015
 
 Fixed Gibbs

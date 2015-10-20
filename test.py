@@ -2,28 +2,108 @@ import theano
 import theano.tensor as T
 import numpy as np
 from rbm import *
+from ae import *
 
-# x, w = T.scalars('x','w')
-# xs = T.vector('xs')
-# # cost = x * w
-# # gw = T.grad(cost, w)
+def test_ae(learning_rate = 0.1, training_epochs = 1,
+	batch_size = 1, n_hidden=5, corruption_level = 0.3):
+	dataset = np.asarray( [[0,0.5],[1,0],[0.5,1]] )
+	train_set_x = shared_data(dataset)
+	train_not_miss = shared_data(np.asarray( [[0,1],[1,0],[1,1]] ))
 
-# def gen_grad(x,w):
-# 	return T.grad(x*w, w)
+	index = T.lscalar()
+	index2 = T.lscalar()
+	x = T.matrix('x')
+	xnm = T.matrix('xnm')
 
-# # f = theano.function([x,w], gw)
+	rng = numpy.random.RandomState(123)
+	theano_rng = RandomStreams(rng.randint(2 ** 30))
 
-# (
-# 	results, updates
-# ) = theano.scan(
-# 	gen_grad,
-# 	outputs_info = None,
-# 	sequences = xs,
-# 	non_sequences = w
-# 	)
+	da = dA(
+		numpy_rng = rng,
+		theano_rng = theano_rng,
+		input = x,
+		input_nm = xnm,
+		n_visible = dataset.shape[1],
+		n_hidden = n_hidden
+	)
 
-# f2 = theano.function([xs,w], results)
-# print f2([1,2,3],3)
+	print 'W: ', da.W.get_value()
+	
+	crpt = da.get_corrupted_input(da.x, corruption_level)
+	crpt_fn = theano.function(
+		[],
+		crpt,
+		givens = {
+			x: train_set_x
+		},
+		name = 'crpt_fn'
+	)
+	print 'Corrupt x: ', crpt_fn()
+
+	hid = da.get_hidden_values(da.x, da.xnm)
+	hid_fn = theano.function(
+		[],
+		hid,
+		givens = {
+			x: train_set_x,
+			xnm: train_not_miss
+		},
+		name = 'hid_fn'
+	)
+	print 'h: ', hid_fn()
+
+	recon = da.get_reconstructed_input(hid)
+	recon_fn = theano.function(
+		[],
+		recon,
+		givens = {
+			x: train_set_x,
+			xnm: train_not_miss
+		},
+		name = 'recon_fn'
+	)
+	print 'z: ', recon_fn()
+
+	cost = T.sum(T.square(da.x - recon * da.xnm))/T.sum(da.xnm)
+	cost_fn = theano.function(
+		[],
+		cost,
+		givens = {
+			x: train_set_x,
+			xnm: train_not_miss
+		},
+		name = 'cost_fn'
+	)
+	print 'cost: ', cost_fn()
+
+	gp = T.grad(cost, da.params)
+	gp_fn = theano.function(
+		[],
+		gp,
+		givens = {
+			x: train_set_x,
+			xnm: train_set_x
+		},
+		name = 'gp_fn'
+	)
+	print 'grad: ', gp_fn()
+
+	updates = [
+		(param, param - learning_rate * gparam)
+		for param, gparam in zip(da.params, gp)
+	]
+	train_da = theano.function(
+		[],
+		cost,
+		updates = updates,
+		givens = {
+			x: train_set_x,
+			xnm: train_not_miss
+		},
+		name = 'train_da'
+	)
+	train_da()
+	print 'updated W:', da.W.get_value()
 
 def test_rbm2(learning_rate = 0.1, training_epochs=1,
 			n_chains=15, n_samples=10, output_folder='sg_output',
@@ -41,7 +121,7 @@ def test_rbm2(learning_rate = 0.1, training_epochs=1,
 	rng = numpy.random.RandomState(123)
 	theano_rng = RandomStreams(rng.randint(2 ** 30))
 
-	rbm = RBM(input=x, input_nm=xnm, n_visible= dataset.shape[1],
+	rbm = gbRBM(input=x, input_nm=xnm, n_visible= dataset.shape[1],
 			n_hidden=n_hidden, numpy_rng=rng, theano_rng=theano_rng)
 
 	fe = rbm.free_energy(x)
@@ -177,8 +257,77 @@ def test_rbm2(learning_rate = 0.1, training_epochs=1,
 
 	print 'RMSE ', rmse()
 
+def test_rbm_gb(learning_rate = 0.1, training_epochs=1,
+			n_chains=15, n_samples=10, output_folder='sg_output',
+			n_hidden=1):
+	#
+	dataset = np.asarray( [[0,0.5],[1,0],[0.5,1]] )
+	train_set_x = shared_data(dataset)
+	train_not_miss = shared_data(np.asarray( [[0,1],[1,0],[1,1]] ))
+
+	index = T.lscalar()
+	index2 = T.lscalar()
+	x = T.matrix('x')
+	xnm = T.matrix('xnm')
+
+	rng = numpy.random.RandomState(123)
+	theano_rng = RandomStreams(rng.randint(2 ** 30))
+
+	rbm = gbRBM(input=x, input_nm=xnm, n_visible= dataset.shape[1],
+			n_hidden=n_hidden, numpy_rng=rng, theano_rng=theano_rng,
+			sgm = 0.2)
+
+	pre_sigmoid_ph, ph_mean, ph_sample = \
+		rbm.sample_h_given_v(x)
+	pre_sigmoid_pv, pv_mean, pv_sample = \
+		rbm.sample_v_given_h(ph_sample)
+	
+	test_h_sample = theano.function(
+		[],
+		[ph_mean, ph_sample],
+		givens = {
+		x: train_set_x
+		},
+		name = 'test_h_sample'
+	)
+	test_v_sample = theano.function(
+		[],
+		[pv_mean, pv_sample],
+		givens = {
+		x: train_set_x
+		},
+		name = 'test_v_sample'
+	)
+	print 'h_sample: ', test_h_sample()
+	print 'v_sample: ', test_v_sample()
+
+		# predicting function
+	print '... building predict function'
+	predict = theano.function(
+		[],
+		rbm.v_mean,
+		givens = {
+			x: train_set_x
+		},
+		name = 'predict'
+	)
+	print 'predict: ', predict()
+
+	fe = rbm.free_energy(x)
+	fe_fn = theano.function(
+		[],
+		fe,
+		givens = {
+		x: train_set_x
+		},
+		name = 'fe_fn'
+	)
+	print 'fe: ', fe_fn()
+
 if __name__ == '__main__':
-	test_rbm2()
+	# test_rbm_gb()
+	# test_rbm2()
+	test_ae()
 
 
 

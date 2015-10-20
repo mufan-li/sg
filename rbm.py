@@ -268,6 +268,69 @@ class RBM(object):
 
 		return cross_entropy
 
+'''
+##############################
+# Gaussian Visible RBM class #
+##############################
+'''
+
+class gbRBM(RBM):
+	def __init__(
+		self,
+		input=None,
+		input_nm=None,
+		n_visible=784,
+		n_hidden=500,
+		W=None,
+		hbias=None,
+		vbias=None,
+		numpy_rng=None,
+		theano_rng=None,
+		sgm=0.2
+	):
+		self.sigma = theano.shared(
+			value=np.asarray(sgm,
+				dtype=theano.config.floatX),
+			name='sigma',
+			borrow=True
+		)
+		super(gbRBM,self).__init__(input, input_nm, \
+			n_visible, n_hidden,\
+			W, hbias, vbias, numpy_rng, theano_rng)
+		
+
+	def free_energy(self, v_sample):
+		# Let sigma = self.sigma
+		# F = log sum_h exp(-E(v,h))
+		wx_b = T.dot(v_sample/self.sigma, self.W) + self.hbias
+		vdot = (v_sample - self.vbias)/self.sigma
+		vbias_term = T.sum(vdot * vdot,1,keepdims=True)
+		hidden_term = T.log(1 + T.exp(wx_b))
+		return (-vbias_term-hidden_term)
+
+	def propup(self, vis):
+		pre_sigmoid_activation = T.dot(vis/self.sigma, self.W) + \
+									self.hbias
+		return [pre_sigmoid_activation, \
+				T.nnet.sigmoid(pre_sigmoid_activation)]
+
+	def propdown(self, hid):
+		# Gaussian likelihood
+		g_mean = self.sigma*T.dot(hid, self.W.T) + self.vbias
+		sd = self.sigma
+		return [g_mean, g_mean]
+
+	def sample_v_given_h(self, h0_sample):
+		g_mean, _ = self.propdown(h0_sample)
+		# v1_sample = self.theano_rng.binomial(size=v1_mean.shape,
+		# 			n=1, p=v1_mean, dtype=theano.config.floatX) * \
+		# 				self.input_nm
+		v1_sample = self.theano_rng.normal(size=g_mean.shape, 
+			avg=g_mean, std=self.sigma, dtype=theano.config.floatX)
+		return [g_mean, g_mean, v1_sample]
+
+
+
 
 '''
 #####################
@@ -279,7 +342,8 @@ def run_rbm(dataset, learning_rate = 0.1,
 			training_epochs=1, momentum_const=0.9,
 			batch_size=10,
 			n_chains=15, n_samples=10, output_folder='sg_output',
-			n_hidden=20):
+			n_hidden=20,
+			rbm_class=RBM):
 	
 	# input.nm is used in gradients
 	theano.config.on_unused_input = 'warn'
@@ -310,7 +374,7 @@ def run_rbm(dataset, learning_rate = 0.1,
 							dtype=theano.config.floatX),
 						borrow=True)
 
-	rbm = RBM(input=x, input_nm=xnm, n_visible= dataset.shape[1],
+	rbm = rbm_class(input=x, input_nm=xnm, n_visible= dataset.shape[1],
 			n_hidden=n_hidden, numpy_rng=rng, theano_rng=theano_rng)
 
 	# removed persistence

@@ -34,9 +34,9 @@ sgdata_matrix[missing_entries] = 0
 sgdata_matrix = sgdata_matrix/100. # rescale to [0,1]
 # RBM
 sgdata_predict, RBM = run_rbm(sgdata_matrix, 
-						learning_rate = 1e-5, training_epochs = 100,
-						n_hidden = 20,
-						batch_size=20)
+						learning_rate = 1e-7, training_epochs = 5,
+						n_hidden = 100, batch_size=100,
+						rbm_class = gbRBM)
 # print sgdata_matrix[:5,:5]
 # print sgdata_predict[:5,:5]
 print sgdata_matrix[~missing_entries][:10]
@@ -44,7 +44,8 @@ print sgdata_predict[~missing_entries][:10].round(2)
 
 idx = sgdata_matrix.shape[0]/5
 rbm_error = np.sqrt(np.mean(np.square(
-	(sgdata_predict - sgdata_matrix)[:4*idx,:][~missing_entries[:4*idx,:]]
+	(sgdata_predict - sgdata_matrix)[4*idx:,:][\
+		~missing_entries[4*idx:,:]]
 	)))
 
 print 'RBM RMSE: ', rbm_error
