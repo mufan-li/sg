@@ -16,9 +16,10 @@ print '... prepocessing data'
 sgdata_raw = pd.read_csv('allgradesanon2.csv')
 sgdata_raw['CREDIT'] = 0.5
 sgdata_raw.ix[sgdata_raw.WEIGHT == 'Y','CREDIT'] = 1
+sgdata_raw.ix[sgdata_raw.GRADE == 0,'GRADE'] = 1
 
 # filter for only math courses
-# sgdata_raw = sgdata_raw[sgdata_raw['DEPT']=='MAT']
+# sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(['MAT','ECO','STA','PHY'])]
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())
@@ -84,9 +85,9 @@ print 'number of courses: ' + str(n_courses2) + ', ' + \
 print 'number of grades: ' + str(n_grades2) + ', ' + \
 		str(round(n_grades2*100.0 / n_grades,2)) + '%' + '\n'
 
-del sgdata_raw, groupByCourse, groupById, groupByCourseCount
-del groupByIdCount, aggByCourse, aggById, aggByCourseCount, aggByIdCount
-del n_students, n_students2, n_courses, n_courses2, n_grades, n_grades2
+# del sgdata_raw, groupByCourse, groupById, groupByCourseCount
+# del groupByIdCount, aggByCourse, aggById, aggByCourseCount, aggByIdCount
+# del n_students, n_students2, n_courses, n_courses2, n_grades, n_grades2
 
 #################################
 # find department representation

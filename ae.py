@@ -263,20 +263,33 @@ def run_dA(dataset, learning_rate = 0.1, training_epochs = 15,
 		name = 'test_error'
 	)
 
+	get_hid = theano.function(
+		[],
+		da.get_hidden_values(x),
+		givens = {
+			x: complete_set
+		}
+	)
+
 	start_time = timeit.default_timer()
 
 	for epoch in xrange(training_epochs):
 		for batch_index in xrange(n_train_batches):
 			train_da(batch_index)
+
+			# if (batch_index % (n_train_batches/10) == 0):
 		print 'Training epoch %d, train error ' % epoch,\
 			train_error(), ', test error ', test_error()
+				# print np.linalg.norm(da.W.get_value()),\
+				# 	np.linalg.norm(da.b.get_value()),\
+				# 	np.linalg.norm(da.b_prime.get_value())
 		# print 'W: ', da.W.get_value()
 
 	end_time = timeit.default_timer()
 
 	training_time = end_time - start_time
 
-	return predict(dataset)
+	return predict(dataset), get_hid()
 
 if __name__ == '__main__':
 	dataset = np.asarray( [[0,0.5],[1,0],[0.5,1],[0.6,0.1],[0,0.9]] )
