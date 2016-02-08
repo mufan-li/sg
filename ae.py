@@ -28,7 +28,8 @@ class dA(object):
 		n_hidden = 500,
 		W = None,
 		bhid = None,
-		bvis = None
+		bvis = None,
+		actv_fcn = None
 	):
 
 		self.n_visible = n_visible
@@ -82,43 +83,98 @@ class dA(object):
 
 		self.params = [self.W, self.b, self.b_prime]
 
+		if actv_fcn is None:
+			actv_fcn = T.nnet.sigmoid
+		self.actv_fcn = actv_fcn
+
 	def get_corrupted_input(self, input, corruption_level):
 		return self.theano_rng.binomial(size = input.shape, n = 1,
 				p = 1 - corruption_level,
 				dtype = theano.config.floatX) * input
 
-	def get_hidden_values(self, input, input_nm):
-		return T.nnet.sigmoid(T.dot(input * input_nm, self.W) + 
+	def get_hidden_values(self, input):
+		return self.actv_fcn(T.dot(input, self.W) + 
 				self.b)
 
 	def get_reconstructed_input(self, hidden):
-		return T.nnet.sigmoid(T.dot(hidden, self.W_prime)+
+		return self.actv_fcn(T.dot(hidden, self.W_prime)+
 				self.b_prime)
+	
+	def predict(self, input):
+		hidden = self.get_hidden_values(input)
+		return self.get_reconstructed_input(hidden)
 
-	def get_cost_updates(self, corruption_level, learning_rate):
-		tilde_x = self.get_corrupted_input(self.x, corruption_level)
-		y = self.get_hidden_values(tilde_x, self.xnm)
+	def get_cost(self, x, xnm, corruption_level):
+		tilde_x = self.get_corrupted_input(x, corruption_level)
+		y = self.get_hidden_values(tilde_x)
 		z = self.get_reconstructed_input(y)
-
 		# L = - T.sum(self.x * T.log(z) * self.xnm + 
 		# 		(1 - self.x) * T.log(1 - z) * self.xnm,
 		# 		axis=1)
 		# cost = T.mean(L)
 
 		# use squared error instead
-		cost = T.sum(T.square( self.x - z * self.xnm ))/T.sum(self.xnm)
+		cost = T.sum(T.square( x - z * xnm ))/T.sum(xnm)
+		return cost
 
-		gparams = T.grad(cost, self.params)
+		# for scan
+	def each_grad(self, x, xnm, corruption_level):
+		cost = self.get_cost(x, xnm, corruption_level)
 
-		updates = [
-			(param, param - learning_rate * gparam)
-			for param, gparam in zip(self.params, gparams)
+		gW = (T.grad(cost, self.W).T * xnm).T
+		gb = T.grad(cost, self.b)
+		gbp = (T.grad(cost, self.b_prime) * xnm)
+		return gW, gb, gbp
+
+	def get_cost_updates(self, corruption_level, 
+			learning_rate, momentum_const):
+
+		# return all the gradients
+		(
+			[gW_vals, gb_vals, gbp_vals],
+			updates # placeholder
+		) = theano.scan(
+				self.each_grad,
+				outputs_info = None,
+				sequences = [self.x, self.xnm],
+				non_sequences = corruption_level
+		)
+
+		# gparams = T.grad(cost, self.params)
+		gparams = [T.sum(gW_vals,0), T.sum(gb_vals,0), \
+				T.sum(gbp_vals,0)]
+		vparams = [theano.shared(np.zeros(param.get_value().shape),
+						borrow=True,
+						broadcastable=param.broadcastable)
+						for param in self.params]
+
+		# momentum
+		update1 = [
+			(vparam, T.cast(momentum_const, 
+				dtype=theano.config.floatX) * vparam \
+					+ T.cast(learning_rate, 
+						dtype=theano.config.floatX) * gparam)
+			for vparam, gparam in zip(vparams, gparams)
 		]
+		# change
+		update2 = [
+			(param, param - vparam) 
+			for param, vparam in zip(self.params, vparams)
+		]
+		updates += update1 + update2
+
+		cost = self.get_cost(self.x, self.xnm, corruption_level)
+
+		# updates = [
+		# 	(param, param - learning_rate * gparam)
+		# 	for param, gparam in zip(self.params, gparams)
+		# ]
 
 		return (cost, updates)
 
 def run_dA(dataset, learning_rate = 0.1, training_epochs = 15,
-		batch_size = 20, n_hidden = 100, corruption_level = 0.3):
+		batch_size = 20, n_hidden = 100, corruption_level = 0.3,
+		momentum_const = 0.9, actv_fcn = None):
 	# input.nm is used in gradients
 	theano.config.on_unused_input = 'warn'
 
@@ -150,12 +206,14 @@ def run_dA(dataset, learning_rate = 0.1, training_epochs = 15,
 		input = x,
 		input_nm = xnm,
 		n_visible = dataset.shape[1],
-		n_hidden = n_hidden
+		n_hidden = n_hidden,
+		actv_fcn = actv_fcn
 	)
 
 	cost, updates = da.get_cost_updates(
 		corruption_level = corruption_level,
-		learning_rate = learning_rate
+		learning_rate = learning_rate,
+		momentum_const = momentum_const
 	)
 
 	print '... building training function ...'
@@ -166,26 +224,64 @@ def run_dA(dataset, learning_rate = 0.1, training_epochs = 15,
 		givens = {
 			x: train_set_x[index * batch_size: (index+1) * batch_size],
 			xnm: train_not_miss[index*batch_size:(index+1)*batch_size]
-		}
+		},
+		name = 'train_da'
+	)
+
+	print '... building predict function ...'
+	predict = theano.function(
+		[x],
+		da.predict(x),
+		name = 'predict'
+	)
+
+	print '... building training error function ...'
+	error, _ = da.get_cost_updates(
+		corruption_level = 0,
+		learning_rate = learning_rate,
+		momentum_const = momentum_const
+	)
+	
+	train_error = theano.function(
+		[],
+		T.sqrt(error),
+		givens = {
+			x: train_set_x,
+			xnm: train_not_miss
+		},
+		name = 'train_error'
+	)
+
+	print '... building test error function ...'
+	test_error = theano.function(
+		[],
+		T.sqrt(error),
+		givens = {
+			x: test_set_x,
+			xnm: test_not_miss
+		},
+		name = 'test_error'
 	)
 
 	start_time = timeit.default_timer()
 
 	for epoch in xrange(training_epochs):
-		c = []
 		for batch_index in xrange(n_train_batches):
-			c.append(train_da(batch_index))
-		print 'Training epoch %d, cost ' % epoch, np.mean(c)
+			train_da(batch_index)
+		print 'Training epoch %d, train error ' % epoch,\
+			train_error(), ', test error ', test_error()
 		# print 'W: ', da.W.get_value()
 
 	end_time = timeit.default_timer()
 
 	training_time = end_time - start_time
 
+	return predict(dataset)
+
 if __name__ == '__main__':
-	dataset = np.asarray( [[0,0.5],[1,0],[0.5,1]] )
+	dataset = np.asarray( [[0,0.5],[1,0],[0.5,1],[0.6,0.1],[0,0.9]] )
 	run_dA(dataset, learning_rate = 0.1, training_epochs = 15,
-		batch_size = 1, n_hidden = 10, corruption_level = 0.3)	
+		batch_size = 1, n_hidden = 1, corruption_level = 0.3)	
 
 
 

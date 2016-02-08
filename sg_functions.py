@@ -146,6 +146,60 @@ def load_mnist_data(dataset):
 			(test_set_x, test_set_y)]
 	return rval
 
+
+def identity_fn(x):
+	''' returns the identity
+	'''
+	return x
+
+
+def get_major_prop(sample_df, min_credit = 3):
+	''' returns the proportion department of major
+	'''
+	total = sum(sample_df.CREDIT_TOTAL)
+	sample_df['DEPT_PROP'] = sample_df['CREDIT_TOTAL'] / total
+	return sample_df
+	
+def summary(sgdata_predict, sgdata_matrix, 
+		missing_entries, name):
+	print sgdata_matrix[~missing_entries][:10]
+	print sgdata_predict[~missing_entries][:10].round(2)
+
+	idx = sgdata_matrix.shape[0]/5
+	error = np.sqrt(np.mean(np.square(
+		(sgdata_predict - sgdata_matrix)[4*idx:,:][\
+			~missing_entries[4*idx:,:]]
+		)))
+
+	print name, ' RMSE: ', error
+
+def relu(x):
+    return theano.tensor.switch(x<0, 0, x)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 """ This file contains different utility functions that are not connected
 in anyway to the networks presented in the tutorials, but rather help in
 processing the outputs into a more understandable way.

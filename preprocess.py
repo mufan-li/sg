@@ -8,12 +8,17 @@ Script to load and filter out data
 ## required imports
 import pandas as pd
 import numpy as np
+from sg_functions import *
+
+print '... prepocessing data'
 
 # import .csv file of data
 sgdata_raw = pd.read_csv('allgradesanon2.csv')
+sgdata_raw['CREDIT'] = 0.5
+sgdata_raw.ix[sgdata_raw.WEIGHT == 'Y','CREDIT'] = 1
 
 # filter for only math courses
-sgdata_raw = sgdata_raw[sgdata_raw['DEPT']=='MAT']
+# sgdata_raw = sgdata_raw[sgdata_raw['DEPT']=='MAT']
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())
@@ -82,5 +87,51 @@ print 'number of grades: ' + str(n_grades2) + ', ' + \
 del sgdata_raw, groupByCourse, groupById, groupByCourseCount
 del groupByIdCount, aggByCourse, aggById, aggByCourseCount, aggByIdCount
 del n_students, n_students2, n_courses, n_courses2, n_grades, n_grades2
+
+#################################
+# find department representation
+
+print '... aggregating by department'
+groupByIdDept = sgdata[['ID','DEPT','CREDIT']].groupby(['ID','DEPT'])
+aggByIdDept = groupByIdDept.sum().add_suffix('_TOTAL').reset_index()
+groupByIdDeptCred = aggByIdDept.groupby('ID')
+aggByIdDeptCred = groupByIdDeptCred.apply(get_major_prop)
+
+sgIdDept_pivot = aggByIdDeptCred.pivot(index = 'ID', \
+					columns = 'DEPT', values = 'DEPT_PROP')
+sgDept = sgIdDept_pivot.columns.values
+sgDept_matrix = np.asarray(sgIdDept_pivot)
+sgDept_nan = np.isnan(sgDept_matrix)
+sgDept_matrix[sgDept_nan] = 0
+
+sgMaj_argmax = np.argmax(sgDept_matrix, axis = 1)
+sgMaj_matrix = np.zeros(np.shape(sgDept_matrix))
+for i in range(np.shape(sgDept_matrix)[0]):
+	sgMaj_matrix[i,sgMaj_argmax[i]] = 1
+
+#################################
+# filter for repeated courses
+# use group.last() assuming the last is most recent
+
+print '... format and output'
+sgGroup = sgdata[['ID','COURSE','GRADE']].groupby(['ID', 'COURSE'])
+
+sgdataFilter = sgGroup.last().reset_index()
+sgdata_pivot = sgdataFilter.pivot(index='ID', \
+				columns='COURSE', values='GRADE')
+
+sgdata_matrix = np.asarray(sgdata_pivot)
+
+# set to zero
+missing_entries = np.isnan(sgdata_matrix)
+sgdata_matrix[missing_entries] = 0
+
+# rescale to [0,1]
+sgdata_matrix = sgdata_matrix/100. 
+
+np.save('sgdata_matrix',sgdata_matrix)
+np.save('sgDept_matrix',sgDept_matrix)
+np.save('missing_entries',missing_entries)
+np.save('sgMaj_matrix',sgMaj_matrix)
 
 

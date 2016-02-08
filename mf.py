@@ -1,59 +1,204 @@
-'''
-Apply Matrix Factorization on variable 'sgdata_matrix'
-'''
+
+import timeit
 
 import numpy as np
-import numpy.linalg as la
 import numpy.random as rd
-import pylab as P
-import time
 
-# general low rank matrix 
-from glrm import GLRM
-# helper functions
+import theano
+import theano.tensor as T
+import os
+
+from theano.tensor.shared_randomstreams import RandomStreams
+
 from sg_functions import *
 
-# set parameters
-regC1, regC2 = 1, 1 # regularization
-k = 5 # decomposition rank
-N, M = sgdata_matrix.shape
+'''
+############
+# MF class #
+############
+'''
 
-from glrm.loss import QuadraticLoss
-from glrm.reg import QuadraticReg
+class MF(object):
+	def __init__(
+		self,
+		input=None,
+		input_nm=None,
+		n_class=784,
+		n_student=500,
+		d=5,
+		A=None,
+		B=None,
+		numpy_rng=None,
+		theano_rng=None
+	):
+		self.n_class = n_class
+		self.n_student = n_student
 
-loss = [QuadraticLoss]
-regX, regY = [QuadraticReg(regC1), QuadraticReg(regC2)]
+		if numpy_rng is None:
+			# create a numpy generator
+			numpy_rng = rd.RandomState(1234)
 
-A, A_miss, v_miss = find_missing_entries(sgdata_matrix)
-A_list = [A]
-miss = [A_miss]
+		if theano_rng is None:
+			theano_rng = RandomStreams(numpy_rng.randint(2 ** 30))
 
-start_time = time.time()
+		# need to create shared variables
+		if A is None:
+			initial_A = np.asarray(
+				numpy_rng.uniform(
+					low=-4 * np.sqrt(6. / (n_student)),
+					high=4 * np.sqrt(6. / (n_student)),
+					size=(n_student, d)
+				),
+				dtype = theano.config.floatX
+			)
+			A = theano.shared(value=initial_A, name='A', borrow=True)
 
-model = GLRM(A_list, loss, regX, regY, k, miss)
-model.fit()
+		if B is None:
+			initial_B = np.asarray(
+				numpy_rng.uniform(
+					low=-4 * np.sqrt(6. / (n_class)),
+					high=4 * np.sqrt(6. / (n_class)),
+					size=(d, n_class)
+				),
+				dtype = theano.config.floatX
+			)
+			B = theano.shared(value=initial_B, name='B', borrow=True)
 
-end_time = time.time()
-print 'time:' + str(round(end_time-start_time,1)) + 'seconds'
+		self.input = input
+		if not input:
+			self.input = T.matrix('input')
+		self.input_nm = input_nm
+		if not input_nm:
+			self.input = T.matrix('input_nm')
 
-X, Y = model.factors()
-A_hat = model.predict()
+		self.A = A
+		self.B = B
+		self.theano_rng = theano_rng
+		self.params = [self.A, self.B]
 
-error = fbnorm(A_hat - np.hstack(A_list), v_miss)
-print 'Frobenius Error: ' + str(round(error,2))
-error2 = rmse(A, A_hat, v_miss)
-print 'RMSE: ' + str(round(error2,2))
+		self.predict = T.dot(A,B)
 
-print A[~v_miss][:10]
-print A_hat[~v_miss][:10].round()
+def run_mf(dataset, learning_rate = 0.1, training_epochs = 10,
+		d = 5, momentum_const = 0.9):
+	theano.config.on_unused_input = 'warn'
 
-ind = np.where(A>0)
-hData = abs(A-A_hat).round(0)[ind]
+	train_idx = dataset.shape[0]*4/5
+	train_set_x = shared_data(dataset[:train_idx, :])
+	train_not_miss = shared_data( ~(dataset[:train_idx, :]==0) )
+	test_set_x = shared_data(dataset[train_idx:, :])
+	test_not_miss = shared_data( ~(dataset[train_idx:, :]==0) )
 
-n, bins, patches = P.hist(hData, 20, normed=1, histtype='stepfilled')
-# P.setp(patches, 'facecolor', 'g', 'alpha', 0.75)
-# P.figure()
-# P.show()
+	missing_entries = shared_data(~(dataset==0))
+	complete_set = shared_data(dataset)
+
+	x = T.matrix('x')
+	xnm = T.matrix('xnm') # for not_miss matrix
+
+	rng = numpy.random.RandomState(123)
+	theano_rng = RandomStreams(rng.randint(2 ** 30))
+
+	mf = MF(
+		input=x,
+		input_nm=xnm,
+		n_class=dataset.shape[1],
+		n_student=dataset.shape[0],
+		d=5
+	)
+
+	cost = T.sum(T.square( mf.input - mf.predict * xnm )) \
+		/ T.sum(mf.input_nm)
+
+	gparams = [T.grad(cost, param) for param in mf.params]
+
+	vparams = [theano.shared(param.get_value(), borrow=True)
+				for param in mf.params
+	]
+	update1 = [
+		(vparam, momentum_const * vparam - learning_rate * gparam) 
+		for vparam, gparam in zip(vparams, gparams)
+	]
+	update2 = [
+		(param, param + vparam) 
+		for param, vparam in zip(mf.params, vparams)
+	]
+
+	print '... building training function ...'
+	train_mf = theano.function(
+		[],
+		cost,
+		updates = update1 + update2,
+		givens = {
+			x: complete_set,
+			xnm: missing_entries
+		},
+		name = 'train_mf'
+	)
+
+	print '... building predict function ...'
+	predict = theano.function(
+		[x],
+		mf.predict,
+		name = 'predict'
+	)
+
+	train_error = theano.function(
+		[],
+		T.sqrt(cost),
+		givens = {
+			x: complete_set,
+			xnm: missing_entries
+		},
+		name = 'train_error'
+	)
+
+	# print '... building test error function ...'
+	# test_error = theano.function(
+	# 	[],
+	# 	T.sqrt(cost),
+	# 	givens = {
+	# 		x: test_set_x,
+	# 		xnm: test_not_miss
+	# 	},
+	# 	name = 'test_error'
+	# )
+
+	start_time = timeit.default_timer()
+
+	for epoch in xrange(training_epochs):	
+		train_mf()
+		print 'Training epoch %d, train error ' % epoch,\
+			train_error()
+			#, ', test error ', test_error()
+		# print 'W: ', da.W.get_value()
+
+	end_time = timeit.default_timer()
+
+	training_time = end_time - start_time
+
+	return predict(dataset)
+
+if __name__ == '__main__':
+	# add test?
+	print('Test \n')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

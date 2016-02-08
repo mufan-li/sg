@@ -2,12 +2,23 @@ Notes
 
 ################################################################
 
+Renaissance measure
+Major prediction
+Diversity of major choices/quality within each 'category'
+
+Keep a running paper
+
+################################################################
+
 To-do list
  - Gaussian/other implementations of RBM
  - MF in theano
  - Auto-Encoder
  - movie dataset
  - hyperparameters 
+
+Rename document, add AE, formating
+Consistent grading by department
 
 ################################################################
 

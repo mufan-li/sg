@@ -7,49 +7,48 @@ import numpy as np
 import numpy.linalg as la
 import numpy.random as rd
 
+import theano.tensor as T
+
 # helper functions
 from sg_functions import *
+from mf import *
 from rbm import *
+from ae import *
+from nnet2 import *
 
-# load and filter the data file
-print '... prepocessing data'
-execfile('preprocess.py')
+# # load and filter the data file
+# execfile('preprocess.py')
+sgdata_matrix = np.load('sgdata_matrix.npy')
+sgDept_matrix = np.load('sgDept_matrix.npy')
+missing_entries = np.load('missing_entries.npy')
+sgMaj_matrix = np.load('sgMaj_matrix.npy')
 
-# filter for repeated courses
-# use group.last() assuming the last is most recent
-sgGroup = sgdata[['ID','COURSE','GRADE']].groupby(['ID', 'COURSE'])
+# # matrix factorization
+# execfile('mf_glrm.py')
 
-sgdataFilter = sgGroup.last().reset_index()
-sgdata_pivot = sgdataFilter.pivot(index='ID', \
-				columns='COURSE', values='GRADE')
+run_nnet(sgdata_matrix, sgMaj_matrix, learning_rate = 1e-3, training_epochs = 15,
+		batch_size = 1000, v_hidden = [100, 100], momentum_const = 0.9, 
+		cost_type = 'NLL')
 
-sgdata_matrix = np.asarray(sgdata_pivot)
-# set to zero
-missing_entries = np.isnan(sgdata_matrix)
-sgdata_matrix[missing_entries] = 0
+# sgdata_predict_mf = run_mf(sgdata_matrix,
+# 						learning_rate = 1e-5, 
+# 						training_epochs = 20,
+# 						d = 20, momentum_const = 0.2)
+# summary(sgdata_predict_mf, sgdata_matrix, missing_entries, "MF")
 
-# matrix factorization
-# execfile('mf.py')
+# # RBM
+# sgdata_predict_rbm, rbm = run_rbm(sgdata_matrix, 
+# 						learning_rate = 1e-4, training_epochs = 20,
+# 						n_hidden = 20, batch_size=50,
+# 						rbm_class = RBM)
+# summary(sgdata_predict_rbm, sgdata_matrix, missing_entries, "RBM")
 
-sgdata_matrix = sgdata_matrix/100. # rescale to [0,1]
-# RBM
-sgdata_predict, RBM = run_rbm(sgdata_matrix, 
-						learning_rate = 1e-7, training_epochs = 5,
-						n_hidden = 100, batch_size=100,
-						rbm_class = gbRBM)
-# print sgdata_matrix[:5,:5]
-# print sgdata_predict[:5,:5]
-print sgdata_matrix[~missing_entries][:10]
-print sgdata_predict[~missing_entries][:10].round(2)
-
-idx = sgdata_matrix.shape[0]/5
-rbm_error = np.sqrt(np.mean(np.square(
-	(sgdata_predict - sgdata_matrix)[4*idx:,:][\
-		~missing_entries[4*idx:,:]]
-	)))
-
-print 'RBM RMSE: ', rbm_error
-
+# # AE
+# sg_predict_ae = run_dA(sgdata_matrix,
+# 					learning_rate = 1e-2, training_epochs = 40,
+# 					n_hidden = 20, batch_size = 50,
+# 					corruption_level = 0.3)
+# summary(sg_predict_ae, sgdata_matrix, missing_entries, "DAE")
 
 
 

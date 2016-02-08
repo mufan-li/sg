@@ -513,6 +513,7 @@ def run_rbm(dataset, learning_rate = 0.1,
 
 	return np.asarray(sgdata_predict), rbm
 
+
 if __name__ == '__main__':
 	print '... No tests'
 
