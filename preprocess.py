@@ -19,7 +19,7 @@ sgdata_raw.ix[sgdata_raw.WEIGHT == 'Y','CREDIT'] = 1
 sgdata_raw.ix[sgdata_raw.GRADE == 0,'GRADE'] = 1
 
 # filter for only math courses
-# sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(['MAT','ECO','STA','PHY'])]
+sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(['MAT','ECO'])]
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())

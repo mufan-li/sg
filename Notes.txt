@@ -2,6 +2,12 @@ Notes
 
 ################################################################
 
+ - Debug the 2 major case
+ - sensitivity to grades in first year
+ - filter for all four years of grades
+
+################################################################
+
 Renaissance measure
 Major prediction
 Diversity of major choices/quality within each 'category'

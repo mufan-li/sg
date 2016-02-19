@@ -26,9 +26,11 @@ sgMaj_matrix = np.load('sgMaj_matrix.npy')
 # # matrix factorization
 # execfile('mf_glrm.py')
 
-# run_nnet(sgdata_matrix, sgMaj_matrix, learning_rate = 1e-3, training_epochs = 15,
-# 		batch_size = 1000, v_hidden = [100, 100], momentum_const = 0.9, 
-# 		cost_type = 'NLL')
+sgMaj_pred = run_nnet(sgdata_matrix, sgMaj_matrix, learning_rate = 1e-3, 
+		training_epochs = 20,
+		batch_size = 100, v_hidden = [100, 100], momentum_const = 0.9, 
+		cost_type = 'NLL')
+print sgMaj_pred[:20]
 
 # sgdata_predict_mf = run_mf(sgdata_matrix,
 # 						learning_rate = 1e-5, 
@@ -44,13 +46,21 @@ sgMaj_matrix = np.load('sgMaj_matrix.npy')
 # summary(sgdata_predict_rbm, sgdata_matrix, missing_entries, "RBM")
 
 # # AE
-sg_predict_ae, sg_hid_ae = run_dA(sgdata_matrix,
-					learning_rate = 1e-15, training_epochs = 1,
-					n_hidden = 2, batch_size = 100,
-					corruption_level = 0.3)
-summary(sg_predict_ae, sgdata_matrix, missing_entries, "DAE")
+# sg_predict_ae, sg_hid_ae = run_dA(sgdata_matrix,
+# 					learning_rate = 1e-2, training_epochs = 1,
+# 					n_hidden = 2, batch_size = 100,
+# 					corruption_level = 0.3)
+# summary(sg_predict_ae, sgdata_matrix, missing_entries, "DAE")
 
+# import matplotlib.pyplot as plt
+# sg_hid_ae = np.load('sg_hid_ae.npy')
+# plt.scatter(sg_hid_ae[:,0], sg_hid_ae[:,1], \
+# 	s=30, c=np.sum(sgdata_matrix,1) / np.sum(~missing_entries,1), alpha=0.5)
+# plt.show()
 
+# plt.scatter(sg_hid_ae[:,0], sg_hid_ae[:,1], \
+# 	s=30, c=sgMaj_matrix[:,43], alpha=0.3)
+# plt.show()
 
 
 
