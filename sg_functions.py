@@ -47,7 +47,7 @@ def rmse(A, A_hat, v_miss):
 def shared_data(data_x, borrow=True):
 		''' share only one data variable
 		'''
-		data_x
+		# data_x
 		shared_x = theano.shared(numpy.asarray(data_x,
 									   dtype=theano.config.floatX),
 								 borrow=borrow)

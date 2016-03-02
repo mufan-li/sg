@@ -2,7 +2,15 @@ Notes
 
 ################################################################
 
+March 1, 2016
+
+OLS + ReLU activation works well
+Dropout - still need to add at run_nnet
+
+################################################################
+
  - Debug the 2 major case
+ 	- add OLS
  - sensitivity to grades in first year
  - filter for all four years of grades
 

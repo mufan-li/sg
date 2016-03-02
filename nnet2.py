@@ -18,8 +18,12 @@ class nnet_layer(object):
 	# n_in - # of nodes in the previous layer
 	# n_out - # of nodes in the current layer
 	# layer - the layer count so far, for symbol difference
-	def __init__(self, x, n_in, n_out, layer=0, act=T.nnet.sigmoid,\
-				w = None, b = None):
+	# act - activivation function for this layer
+	# dropout_rate - probability of dropping an input node
+	# dropout_on - Theano tensor, switch for dropout
+	def __init__(self, x, n_in, n_out, dropout_on,
+				layer=0, act=T.nnet.sigmoid,
+				w = None, b = None, dropout_rate=0.3):
 		if w==None:
 			w = theano.shared(
 				value=w_init(n_in, n_out),
@@ -37,7 +41,14 @@ class nnet_layer(object):
 		self.w = w
 		self.b = b
 
-		lin_output = T.dot(x, self.w) + self.b
+		rng = np.random.RandomState(42)
+		srng = RandomStreams(rng.randint(10**9))
+		mask = srng.binomial(n=1, p=1-dropout_rate, size=x.shape)
+		cast_mark = T.cast(mask, theano.config.floatX)
+
+		drop_input = T.switch(dropout_on, x*cast_mark, x*(1-dropout_rate))
+		lin_output = T.dot(drop_input, self.w) + self.b
+
 		self.output = (
 			lin_output if act is None
 			else act(lin_output)
@@ -49,8 +60,9 @@ class nnet2(object):
 	""" the entire neural net implemented with theano
 	"""
 
-	def __init__(self, x, n_in, v_hidden, n_out, 
-		hid_act = relu, out_act = T.nnet.softmax):
+	def __init__(self, x, n_in, v_hidden, n_out, dropout_on,
+		hid_act = relu, out_act = T.nnet.softmax,
+		dropout_rate = 0.3):
 
 		if type(v_hidden) != type([0]) and \
 			type(v_hidden) != type(np.array([])):
@@ -71,9 +83,13 @@ class nnet2(object):
 
 		for i in range(n_hid+1):
 			self.layers.append(
-				nnet_layer(x=x_in, n_in=layers_in[i],
+				nnet_layer(x=x_in, 
+					n_in=layers_in[i],
 					n_out=layers_out[i],
-					layer=i,act=layers_act[i])
+					dropout_on = dropout_on,
+					layer=i, 
+					act=layers_act[i],
+					dropout_rate = dropout_rate)
 				)
 			self.params += self.layers[i].params
 			x_in = self.layers[i].output
@@ -96,7 +112,8 @@ class nnet2(object):
 def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 	batch_size = 20, v_hidden = [100, 100],
 	momentum_const = 0.9, cost_type = 'MSE',
-	actv_fcn = None, out_actv_fcn = None):
+	actv_fcn = None, out_actv_fcn = None,
+	dropout_rate = 0.3, dropout_switch = True):
 	# input.nm is used in gradients
 	theano.config.on_unused_input = 'warn'
 
@@ -121,6 +138,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 	index_end = T.lscalar()
 	x = T.matrix('x')
 	y = T.matrix('y')
+	dropout_on = T.scalar('dropout_on')
 	# xnm = T.matrix('xnm') # for not_miss matrix
 
 	rng = numpy.random.RandomState(123)
@@ -132,6 +150,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 		out_actv_fcn = T.nnet.softmax
 
 	nn = nnet2(x, dataset.shape[1], v_hidden, labelset.shape[1], 
+		dropout_on = dropout_on, dropout_rate = dropout_rate,
 		hid_act = actv_fcn, out_act = out_actv_fcn)
 	output = nn.output
 
@@ -159,7 +178,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 
 	print '... building training function ...'
 	train_model = theano.function(
-		inputs=[index],
+		inputs=[index, dropout_on],
 		outputs=[cost],
 		updates=update1 + update2,
 		givens={
@@ -169,14 +188,14 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 	)
 	print '... building predict function ...'
 	predict = theano.function(
-		[x],
+		[x,dropout_on],
 		output,
 		name = 'predict'
 	)
 	
 	print '... building training error function ...'
 	train_error = theano.function(
-		[],
+		[dropout_on],
 		cost,
 		givens = {
 			x: train_set_x,
@@ -187,7 +206,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 
 	print '... building test error function ...'
 	test_error = theano.function(
-		[],
+		[dropout_on],
 		error_rate,
 		givens = {
 			x: test_set_x,
@@ -200,15 +219,15 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 
 	for epoch in xrange(training_epochs):
 		for batch_index in xrange(n_train_batches):
-			train_model(batch_index)
+			train_model(batch_index, 1)
 		print 'Training epoch %d, train error ' % epoch,\
-			train_error(), ', test error ', test_error()
+			train_error(0), ', test error ', test_error(0)
 
 	end_time = timeit.default_timer()
 
 	training_time = end_time - start_time
 
-	return predict(dataset)
+	return predict(dataset, 0)
 
 
 if __name__ == "__main__":

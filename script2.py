@@ -26,11 +26,12 @@ sgMaj_matrix = np.load('sgMaj_matrix.npy')
 # # matrix factorization
 # execfile('mf_glrm.py')
 
-sgMaj_pred = run_nnet(sgdata_matrix, sgMaj_matrix, learning_rate = 1e-3, 
-		training_epochs = 20,
-		batch_size = 100, v_hidden = [100, 100], momentum_const = 0.9, 
-		cost_type = 'NLL')
-print sgMaj_pred[:20]
+sgMaj_pred = run_nnet(sgdata_matrix, sgMaj_matrix, learning_rate = 1e-2, 
+		training_epochs = 40,
+		batch_size = 50, v_hidden = [80, 80, 80], momentum_const = 0.9, 
+		cost_type = 'MSE', actv_fcn = relu,
+		dropout_rate = 0.3)
+# print sgMaj_pred[:10]
 
 # sgdata_predict_mf = run_mf(sgdata_matrix,
 # 						learning_rate = 1e-5, 
