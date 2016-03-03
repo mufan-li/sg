@@ -17,9 +17,13 @@ sgdata_raw = pd.read_csv('allgradesanon2.csv')
 sgdata_raw['CREDIT'] = 0.5
 sgdata_raw.ix[sgdata_raw.WEIGHT == 'Y','CREDIT'] = 1
 sgdata_raw.ix[sgdata_raw.GRADE == 0,'GRADE'] = 1
+sgdata_raw['UPPER_YEAR'] = sgdata_raw['COURSE'].str[3].astype(int) >= 3
 
 # filter for only math courses
-# sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(['MAT','PHY'])]
+sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
+	['MAT','STAT','PHY','CSC','ECO']
+	# ['MAT','PHY']
+	)]
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())
@@ -116,16 +120,24 @@ for i in range(np.shape(sgDept_matrix)[0]):
 
 print '... format and output'
 sgGroup = sgdata[['ID','COURSE','GRADE']].groupby(['ID', 'COURSE'])
-
 sgdataFilter = sgGroup.last().reset_index()
 sgdata_pivot = sgdataFilter.pivot(index='ID', \
 				columns='COURSE', values='GRADE')
-
 sgdata_matrix = np.asarray(sgdata_pivot)
+
+# include upper year courses only
+sgGroup_uy = sgdata[['ID','COURSE','UPPER_YEAR']].groupby(['ID', 'COURSE'])
+sgdataFilter_uy = sgGroup_uy.last().reset_index()
+sgdata_pivot_uy = sgdataFilter_uy.pivot(index='ID', \
+				columns='COURSE', values='UPPER_YEAR')
+sgdata_matrix_uy = np.asarray(sgdata_pivot_uy)
 
 # set to zero
 missing_entries = np.isnan(sgdata_matrix)
 sgdata_matrix[missing_entries] = 0
+sgdata_matrix_uy[missing_entries] = False
+
+sgdata_matrix = (sgdata_matrix * sgdata_matrix_uy).astype('float64')
 
 # rescale to [0,1]
 sgdata_matrix = sgdata_matrix/100. 

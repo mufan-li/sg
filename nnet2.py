@@ -195,8 +195,8 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 	
 	print '... building training error function ...'
 	train_error = theano.function(
-		[dropout_on],
-		cost,
+		inputs = [dropout_on],
+		outputs = [cost, error_rate],
 		givens = {
 			x: train_set_x,
 			y: train_set_y
@@ -206,8 +206,8 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 
 	print '... building test error function ...'
 	test_error = theano.function(
-		[dropout_on],
-		error_rate,
+		inputs = [dropout_on],
+		outputs = error_rate,
 		givens = {
 			x: test_set_x,
 			y: test_set_y
@@ -220,8 +220,13 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 	for epoch in xrange(training_epochs):
 		for batch_index in xrange(n_train_batches):
 			train_model(batch_index, 1)
-		print 'Training epoch %d, train error ' % epoch,\
-			train_error(0), ', test error ', test_error(0)
+		
+		train_MSE, train_error_rate = train_error(0)
+		test_error_rate = test_error(0)
+		print 'Epoch ',epoch,', train ', cost_type,' ',\
+			np.round(train_MSE,4), ', train error ', \
+			np.round(train_error_rate,4),\
+			', test error ', np.round(test_error_rate,4)
 
 	end_time = timeit.default_timer()
 

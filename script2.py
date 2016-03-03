@@ -27,11 +27,13 @@ sgMaj_matrix = np.load('sgMaj_matrix.npy')
 # execfile('mf_glrm.py')
 
 sgMaj_pred = run_nnet(sgdata_matrix, sgMaj_matrix, learning_rate = 1e-2, 
-		training_epochs = 40,
-		batch_size = 50, v_hidden = [80, 80, 80], momentum_const = 0.9, 
+		training_epochs = 100,
+		batch_size = 20, v_hidden = [500], momentum_const = 0.9, 
 		cost_type = 'MSE', actv_fcn = relu,
-		dropout_rate = 0.3)
-# print sgMaj_pred[:10]
+		dropout_rate = 0.5)
+
+print np.round(sgMaj_pred[:10])
+print sgMaj_matrix[:10]
 
 # sgdata_predict_mf = run_mf(sgdata_matrix,
 # 						learning_rate = 1e-5, 
