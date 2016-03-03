@@ -89,7 +89,7 @@ class nnet2(object):
 					dropout_on = dropout_on,
 					layer=i, 
 					act=layers_act[i],
-					dropout_rate = dropout_rate)
+					dropout_rate = dropout_rate*int(i>0))
 				)
 			self.params += self.layers[i].params
 			x_in = self.layers[i].output
@@ -101,10 +101,10 @@ class nnet2(object):
 		return T.mean(T.square(self.output - y))
 
 	def nll(self, y):
-		return - T.mean(T.dot(T.log(self.output.T), y))
-		# return -T.mean(
-		# 	T.log(self.output)[T.arange(y.shape[0]), 
-		# 		T.argmax(y,axis=1)])
+		# return - T.mean(T.dot(T.log(self.output.T), y))
+		return -T.mean(
+			T.log(self.output)[T.arange(y.shape[0]), 
+				T.argmax(y,axis=1)])
 
 	def error(self,y):
 		return T.mean(T.neq(self.outclass, T.argmax(y, axis=1)))

@@ -7,6 +7,9 @@ March 1, 2016
 OLS + ReLU activation works well
 Dropout - still need to add at run_nnet
 
+Prediction ~10% error when only limited to 2 department's courses
+Consider having all courses, but with only 2 majors
+
 ################################################################
 
  - Debug the 2 major case

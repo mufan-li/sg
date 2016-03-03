@@ -20,10 +20,10 @@ sgdata_raw.ix[sgdata_raw.GRADE == 0,'GRADE'] = 1
 sgdata_raw['UPPER_YEAR'] = sgdata_raw['COURSE'].str[3].astype(int) >= 3
 
 # filter for only math courses
-sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
-	['MAT','STAT','PHY','CSC','ECO']
-	# ['MAT','PHY']
-	)]
+# sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
+# 	['MAT','STAT','PHY','CSC','ECO']
+# 	# ['MAT','PHY']
+# 	)]
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())
