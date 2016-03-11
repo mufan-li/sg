@@ -9,6 +9,7 @@ import gzip
 import cPickle
 import theano
 import theano.tensor as T
+import matplotlib.pyplot as plt
 
 def find_missing_entries(A, missing_val = 0):
 	# input: 
@@ -95,7 +96,7 @@ def load_mnist_data(dataset):
 	if (not os.path.isfile(dataset)) and data_file == 'mnist.pkl.gz':
 		import urllib
 		origin = (
-			'http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz'
+		'http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz'
 		)
 		print 'Downloading data from %s' % origin
 		urllib.urlretrieve(origin, dataset)
@@ -118,16 +119,17 @@ def load_mnist_data(dataset):
 
 		The reason we store our dataset in shared variables is to allow
 		Theano to copy it into the GPU memory (when code is run on GPU).
-		Since copying data into the GPU is slow, copying a minibatch everytime
-		is needed (the default behaviour if the data is not in a shared
-		variable) would lead to a large decrease in performance.
+		Since copying data into the GPU is slow, copying a minibatch 
+		everytime is needed (the default behaviour if the data is not 
+		in a shared variable) would lead to a large decrease in 
+		performance.
 		"""
 		data_x, data_y = data_xy
 		shared_x = theano.shared(numpy.asarray(data_x,
-											   dtype=theano.config.floatX),
+										   dtype=theano.config.floatX),
 								 borrow=borrow)
 		shared_y = theano.shared(numpy.asarray(data_y,
-											   dtype=theano.config.floatX),
+										   dtype=theano.config.floatX),
 								 borrow=borrow)
 		# When storing data on the GPU it has to be stored as floats
 		# therefore we will store the labels as ``floatX`` as well
@@ -177,7 +179,31 @@ def relu(x):
     return theano.tensor.switch(x<0, 0, x)
 
 
+def nn_plot_results(sgMaj_train_MSE, sgMaj_test_MSE, 
+	sgMaj_train_error_rate, sgMaj_test_error_rate):
+	plt.figure(1)
 
+	plt.subplot(211)
+	x_axis = np.arange(len(sgMaj_train_MSE))
+	plt.plot(x_axis,sgMaj_train_MSE,label="Training Data")
+	plt.plot(x_axis,sgMaj_test_MSE,label="Test Data")
+	# plt.xlabel('Training Epoch')
+	plt.ylabel('Negative Log-Likelihood')
+	plt.title('Training Progress')
+	plt.grid(True)
+	# plt.yscale('log')
+	plt.legend()
+
+	plt.subplot(212)
+	plt.plot(x_axis, sgMaj_train_error_rate, label='Training Data')
+	plt.plot(x_axis, sgMaj_test_error_rate,label='Test Data')
+	plt.xlabel('Training Epoch')
+	plt.ylabel('Error Rate')
+	# plt.title('Training Progress - Error')
+	plt.grid(True)
+	# plt.yscale('log')
+	plt.legend()
+	plt.show()
 
 
 

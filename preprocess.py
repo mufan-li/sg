@@ -20,10 +20,10 @@ sgdata_raw.ix[sgdata_raw.GRADE == 0,'GRADE'] = 1
 sgdata_raw['UPPER_YEAR'] = sgdata_raw['COURSE'].str[3].astype(int) >= 3
 
 # filter for only math courses
-# sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
-# 	['MAT','STAT','PHY','CSC','ECO']
-# 	# ['MAT','PHY']
-# 	)]
+sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
+	['MAT','STAT','PHY','CSC','ECO']
+	# ['MAT','PHY']
+	)]
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())
@@ -39,13 +39,20 @@ print 'number of grades: ' + str(n_grades) + '\n'
 # aggregated data by student
 #  - count the number of courses taken per student
 
-groupById = sgdata_raw[['ID','GRADE']].groupby('ID')
+# Lower Years
+groupById = sgdata_raw[sgdata_raw['UPPER_YEAR'] == False][[\
+						'ID','GRADE']].groupby('ID')
 aggById = groupById.count().add_suffix('_count').reset_index()
 
 groupByIdCount = aggById.groupby('GRADE_count')
 aggByIdCount = groupByIdCount.count().add_suffix('_count').reset_index()
 
 aggByIdCount['c_pct'] = np.cumsum(aggByIdCount['ID_count']) / n_students
+
+# Upper Years
+groupById = sgdata_raw[sgdata_raw['UPPER_YEAR']][[\
+						'ID','GRADE']].groupby('ID')
+aggById2 = groupById.count().add_suffix('_count').reset_index()
 
 # print aggByIdCount
 
@@ -69,11 +76,13 @@ aggByCourseCount['c_pct'] = np.cumsum(aggByCourseCount['COURSE_count'])\
 # take only the data interested #
 #################################
 
-idFilter = aggById[aggById['GRADE_count']>=10]['ID'].unique()
+idFilter = aggById[aggById['GRADE_count']>=5]['ID'].unique()
+idFilter2 = aggById2[aggById2['GRADE_count']>=5]['ID'].unique()
 courseFilter = aggByCourse[aggByCourse['ID_count']>=20]['COURSE'].\
 				unique()
 
 sgdata = sgdata_raw[ ( sgdata_raw['ID'].isin(idFilter) ) & \
+		( sgdata_raw['ID'].isin(idFilter2) ) & \
 		( sgdata_raw['COURSE'].isin(courseFilter) ) ]
 
 # size of data
@@ -90,14 +99,16 @@ print 'number of grades: ' + str(n_grades2) + ', ' + \
 		str(round(n_grades2*100.0 / n_grades,2)) + '%' + '\n'
 
 # del sgdata_raw, groupByCourse, groupById, groupByCourseCount
-# del groupByIdCount, aggByCourse, aggById, aggByCourseCount, aggByIdCount
+# del groupByIdCount, aggByCourse, aggById, aggByCourseCount
+# del aggByIdCount
 # del n_students, n_students2, n_courses, n_courses2, n_grades, n_grades2
 
 #################################
 # find department representation
 
 print '... aggregating by department'
-groupByIdDept = sgdata[['ID','DEPT','CREDIT']].groupby(['ID','DEPT'])
+groupByIdDept = sgdata[sgdata['UPPER_YEAR']][[\
+					'ID','DEPT','CREDIT']].groupby(['ID','DEPT'])
 aggByIdDept = groupByIdDept.sum().add_suffix('_TOTAL').reset_index()
 groupByIdDeptCred = aggByIdDept.groupby('ID')
 aggByIdDeptCred = groupByIdDeptCred.apply(get_major_prop)
@@ -125,24 +136,26 @@ sgdata_pivot = sgdataFilter.pivot(index='ID', \
 				columns='COURSE', values='GRADE')
 sgdata_matrix = np.asarray(sgdata_pivot)
 
-# include upper year courses only
-sgGroup_uy = sgdata[['ID','COURSE','UPPER_YEAR']].groupby(['ID', 'COURSE'])
-sgdataFilter_uy = sgGroup_uy.last().reset_index()
-sgdata_pivot_uy = sgdataFilter_uy.pivot(index='ID', \
-				columns='COURSE', values='UPPER_YEAR')
-sgdata_matrix_uy = np.asarray(sgdata_pivot_uy)
+# include lower year courses only
+sgGroup_ly = sgdata[sgdata['UPPER_YEAR']==False][[\
+			'ID','COURSE','GRADE']].groupby(['ID', 'COURSE'])
+sgdataFilter_ly = sgGroup_ly.last().reset_index()
+sgdata_pivot_ly = sgdataFilter_ly.pivot(index='ID', \
+				columns='COURSE', values='GRADE')
+sgdata_matrix_ly = np.asarray(sgdata_pivot_ly)
 
 # set to zero
 missing_entries = np.isnan(sgdata_matrix)
 sgdata_matrix[missing_entries] = 0
-sgdata_matrix_uy[missing_entries] = False
-
-sgdata_matrix = (sgdata_matrix * sgdata_matrix_uy).astype('float64')
+missing_entries_ly = np.isnan(sgdata_matrix_ly)
+sgdata_matrix_ly[missing_entries_ly] = 0
 
 # rescale to [0,1]
 sgdata_matrix = sgdata_matrix/100. 
+sgdata_matrix_ly = sgdata_matrix_ly/100. 
 
 np.save('sgdata_matrix',sgdata_matrix)
+np.save('sgdata_matrix_ly',sgdata_matrix_ly)
 np.save('sgDept_matrix',sgDept_matrix)
 np.save('missing_entries',missing_entries)
 np.save('sgMaj_matrix',sgMaj_matrix)

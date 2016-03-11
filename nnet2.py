@@ -46,7 +46,7 @@ class nnet_layer(object):
 		mask = srng.binomial(n=1, p=1-dropout_rate, size=x.shape)
 		cast_mark = T.cast(mask, theano.config.floatX)
 
-		drop_input = T.switch(dropout_on, x*cast_mark, x*(1-dropout_rate))
+		drop_input = T.switch(dropout_on, x*cast_mark,x*(1-dropout_rate))
 		lin_output = T.dot(drop_input, self.w) + self.b
 
 		self.output = (
@@ -109,7 +109,8 @@ class nnet2(object):
 	def error(self,y):
 		return T.mean(T.neq(self.outclass, T.argmax(y, axis=1)))
 
-def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
+def run_nnet(dataset, labelset, learning_rate = 1e-5, 
+	training_epochs = 15,
 	batch_size = 20, v_hidden = [100, 100],
 	momentum_const = 0.9, cost_type = 'MSE',
 	actv_fcn = None, out_actv_fcn = None,
@@ -159,6 +160,8 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 	else:
 		cost = nn.mse(y)
 
+	# cost2 = T.log(nn.output)[T.arange(y.shape[0]), T.argmax(y,axis=1)]
+
 	error_rate = nn.error(y)
 
 	gparams = [T.grad(cost, param) for param in nn.params]
@@ -186,11 +189,13 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 			y: train_set_y[index * batch_size: (index+1) * batch_size]
 		}
 	)
+
 	print '... building predict function ...'
 	predict = theano.function(
 		[x,dropout_on],
 		output,
-		name = 'predict'
+		name = 'predict',
+		allow_input_downcast = True
 	)
 	
 	print '... building training error function ...'
@@ -207,7 +212,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 	print '... building test error function ...'
 	test_error = theano.function(
 		inputs = [dropout_on],
-		outputs = error_rate,
+		outputs = [cost, error_rate],
 		givens = {
 			x: test_set_x,
 			y: test_set_y
@@ -216,23 +221,30 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5, training_epochs = 15,
 	)
 
 	start_time = timeit.default_timer()
+	train_MSE = np.zeros(training_epochs)
+	train_error_rate = np.zeros(training_epochs)
+	test_MSE = np.zeros(training_epochs)
+	test_error_rate = np.zeros(training_epochs)
+
+	import matplotlib.pyplot as plt
 
 	for epoch in xrange(training_epochs):
 		for batch_index in xrange(n_train_batches):
 			train_model(batch_index, 1)
 		
-		train_MSE, train_error_rate = train_error(0)
-		test_error_rate = test_error(0)
+		train_MSE[epoch], train_error_rate[epoch] = train_error(0)
+		test_MSE[epoch], test_error_rate[epoch] = test_error(0)
 		print 'Epoch ',epoch,', train ', cost_type,' ',\
-			np.round(train_MSE,4), ', train error ', \
-			np.round(train_error_rate,4),\
-			', test error ', np.round(test_error_rate,4)
+			np.round(train_MSE[epoch],4), ', train error ', \
+			np.round(train_error_rate[epoch],4),\
+			', test error ', np.round(test_error_rate[epoch],4)
 
 	end_time = timeit.default_timer()
 
 	training_time = end_time - start_time
 
-	return predict(dataset, 0)
+	return predict(dataset, 0), train_MSE, \
+		test_MSE, train_error_rate, test_error_rate
 
 
 if __name__ == "__main__":

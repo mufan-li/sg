@@ -2,6 +2,13 @@ Notes
 
 ################################################################
 
+March 8, 2016
+
+Consider adding batch normalization
+Consider adding filter to upper+lower year courses
+
+################################################################
+
 March 1, 2016
 
 OLS + ReLU activation works well
@@ -9,6 +16,11 @@ Dropout - still need to add at run_nnet
 
 Prediction ~10% error when only limited to 2 department's courses
 Consider having all courses, but with only 2 majors
+
+Fixed Issue with NLL
+Removed Dropout on input layer
+
+Add mini-batches in report
 
 ################################################################
 

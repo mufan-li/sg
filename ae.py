@@ -141,8 +141,8 @@ class dA(object):
 		)
 
 		# gparams = T.grad(cost, self.params)
-		gparams = [T.sum(gW_vals,0), T.sum(gb_vals,0), \
-				T.sum(gbp_vals,0)]
+		gparams = [T.mean(gW_vals,0), T.mean(gb_vals,0), \
+				T.mean(gbp_vals,0)]
 		vparams = [theano.shared(np.zeros(param.get_value().shape),
 						borrow=True,
 						broadcastable=param.broadcastable)
