@@ -20,10 +20,10 @@ sgdata_raw.ix[sgdata_raw.GRADE == 0,'GRADE'] = 1
 sgdata_raw['UPPER_YEAR'] = sgdata_raw['COURSE'].str[3].astype(int) >= 3
 
 # filter for only math courses
-sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
-	['MAT','STAT','PHY','CSC','ECO']
-	# ['MAT','PHY']
-	)]
+# sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
+# 	['MAT','STAT','PHY','CSC','ECO']
+# 	# ['MAT','PHY']
+# 	)]
 
 # size of data
 n_students = len(sgdata_raw['ID'].unique())
@@ -125,6 +125,12 @@ sgMaj_matrix = np.zeros(np.shape(sgDept_matrix))
 for i in range(np.shape(sgDept_matrix)[0]):
 	sgMaj_matrix[i,sgMaj_argmax[i]] = 1
 
+# Filter for more than 100 graduates
+# total 47
+sgDeptColFilter = np.sum(sgMaj_matrix,axis=0) > 100
+sgDeptRowFilter = np.sum(sgMaj_matrix[:,sgDeptColFilter], \
+							axis=1).astype(bool)
+
 #################################
 # filter for repeated courses
 # use group.last() assuming the last is most recent
@@ -154,10 +160,31 @@ sgdata_matrix_ly[missing_entries_ly] = 0
 sgdata_matrix = sgdata_matrix/100. 
 sgdata_matrix_ly = sgdata_matrix_ly/100. 
 
+# Filter for majors
+sgdata_matrix = sgdata_matrix[sgDeptRowFilter,:]
+sgdata_matrix_ly = sgdata_matrix_ly[sgDeptRowFilter,:]
+sgDept_matrix = sgDept_matrix[sgDeptRowFilter,:][:,sgDeptColFilter]
+missing_entries = missing_entries[sgDeptRowFilter,:]
+sgMaj_matrix = sgMaj_matrix[sgDeptRowFilter,:][:,sgDeptColFilter]
+
 np.save('sgdata_matrix',sgdata_matrix)
 np.save('sgdata_matrix_ly',sgdata_matrix_ly)
 np.save('sgDept_matrix',sgDept_matrix)
 np.save('missing_entries',missing_entries)
 np.save('sgMaj_matrix',sgMaj_matrix)
 
+
+#########
+# tests
+#########
+
+# groupByDept = sgdata_raw[[\
+# 					'DEPT','CREDIT']].groupby(['DEPT'])
+# aggByDept = groupByDept.sum().add_suffix('_TOTAL').reset_index()
+# aggByDept.sort('CREDIT_TOTAL',ascending=False)[:20]
+
+# depts = sgDept[np.argsort(np.sum(sgMaj_matrix,axis=0))]
+
+# maj_counts = np.sort(np.sum(sgMaj_matrix,axis=0)).astype(int)
+# sgdata_raw.ix[sgdata_raw.DEPT == 'WDW','COURSE'].unique()
 

@@ -30,10 +30,11 @@ sgMaj_matrix = np.load('sgMaj_matrix.npy')
 sgMaj_pred, sgMaj_train_MSE, sgMaj_test_MSE, sgMaj_train_error_rate, \
 	sgMaj_test_error_rate = run_nnet(
 		sgdata_matrix_ly, sgMaj_matrix, 
-		learning_rate = 1e-5, training_epochs = 200,
-		batch_size = 20, v_hidden = [1000,1000],
+		learning_rate = 1e-1, training_epochs = 500,
+		batch_size = 100, v_hidden = [100],
 		momentum_const = 0.99, 
-		cost_type = 'NLL', actv_fcn = relu,
+		cost_type = 'NLL', 
+		actv_fcn = relu,
 		dropout_rate = 0.3)
 
 nn_plot_results(sgMaj_train_MSE, sgMaj_test_MSE, 

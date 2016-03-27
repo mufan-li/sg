@@ -9,6 +9,7 @@ import timeit
 from nnet2_functions import *
 from sg_functions import *
 from theano.tensor.shared_randomstreams import RandomStreams
+from theano.tensor.nnet.bn import batch_normalization
 
 class nnet_layer(object):
 	""" the most basic basic neural net layer class with theano
@@ -40,6 +41,10 @@ class nnet_layer(object):
 
 		self.w = w
 		self.b = b
+		self.gamma = theano.shared(value = numpy.ones((n_out,), 
+						dtype=theano.config.floatX), name='gamma')
+		self.beta = theano.shared(value = numpy.zeros((n_out,), 
+						dtype=theano.config.floatX), name='beta')
 
 		rng = np.random.RandomState(42)
 		srng = RandomStreams(rng.randint(10**9))
@@ -49,9 +54,15 @@ class nnet_layer(object):
 		drop_input = T.switch(dropout_on, x*cast_mark,x*(1-dropout_rate))
 		lin_output = T.dot(drop_input, self.w) + self.b
 
+		bn_output = batch_normalization(inputs = lin_output,
+			gamma = self.gamma, beta = self.beta, 
+			mean = lin_output.mean((0,), keepdims=True),
+			std = lin_output.std((0,), keepdims = True),
+						mode='low_mem')
+
 		self.output = (
-			lin_output if act is None
-			else act(lin_output)
+			bn_output if act is None
+			else act(bn_output)
 		)
 
 		self.params = [self.w, self.b]

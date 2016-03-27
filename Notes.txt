@@ -1,5 +1,46 @@
 Notes 
 
+Additional
+ - use dashboard
+ - batch normalization
+ - test deeper networks
+ - test GPU
+
+################################################################
+
+March 27, 2016
+
+Filtered for majors with at least 100 students
+ - reduced from 66 to 47
+ - barely removed any students ~ O(100)
+
+Linear regression, logistic - 98%
+1 Layer 100 nodes - 73%
+1 Layer 500 nodes - 54%
+1 Layer 2000 nodes - <49%
+
+################################################################
+
+March 15, 2016
+
+ - linear regression on all majors
+ - distinguish 0 grade and untaken courses
+ - categorize first/second year courses by year
+ - randomize training/testing data
+ - compare to naive method argmax dept
+
+ - train with only binary grades - taken/not taken
+ - incorporate majors with input
+ - initialization with major information
+ - fewer nodes/layers
+
+ - predicting course grades for future courses
+ - predicting course choices
+
+ - consider interpretability
+ - send report
+
+
 ################################################################
 
 March 8, 2016
