@@ -2,9 +2,9 @@ Notes
 
 Additional
  - use dashboard
- - batch normalization
  - test deeper networks
  - test GPU
+ - decay learning rate
 
 ################################################################
 
@@ -14,8 +14,10 @@ Filtered for majors with at least 100 students
  - reduced from 66 to 47
  - barely removed any students ~ O(100)
 
+Added Batch Normalization
+
 Linear regression, logistic - 98%
-1 Layer 100 nodes - 73%
+1 Layer 100 nodes - 41%
 1 Layer 500 nodes - 54%
 1 Layer 2000 nodes - <49%
 
