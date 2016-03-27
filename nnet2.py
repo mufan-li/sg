@@ -249,7 +249,13 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 		train_MSE[epoch], train_error_rate[epoch] = train_error(0)
 		test_MSE[epoch], test_error_rate[epoch] = test_error(0)
 		
-		print v_hidden
+		if ((epoch % 10) == 0):
+			print 'v_hid: ', v_hidden, \
+				', batch', batch_size
+			print 'lr: ', learning_rate, \
+				', decay: ', lr_decay, \
+				', momentum: ', momentum_const, \
+				', dropout: ', dropout_rate
 		print 'Epoch ',epoch,', train ', cost_type,' ',\
 			np.round(train_MSE[epoch],4), ', train error ', \
 			np.round(train_error_rate[epoch],4),\
