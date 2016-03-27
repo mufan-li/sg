@@ -16,10 +16,16 @@ Filtered for majors with at least 100 students
 
 Added Batch Normalization
 
-Linear regression, logistic - 98%
-1 Layer 100 nodes - 41%
-1 Layer 500 nodes - 54%
-1 Layer 2000 nodes - <49%
+Entire Set - lr = 0.1, momentum = 0.99
+	Linear regression, logistic - 98%
+	100 - 41%
+	100,100 - 39%
+	500 - 38%
+	500, 300 - 38%
+	1000 - 39%
+
+5 Majors
+300,100 - 14%
 
 ################################################################
 

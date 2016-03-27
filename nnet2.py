@@ -125,7 +125,8 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 	batch_size = 20, v_hidden = [100, 100],
 	momentum_const = 0.9, cost_type = 'MSE',
 	actv_fcn = None, out_actv_fcn = None,
-	dropout_rate = 0.3, dropout_switch = True):
+	dropout_rate = 0.3, dropout_switch = True,
+	lr_decay = 1e-2):
 	# input.nm is used in gradients
 	theano.config.on_unused_input = 'warn'
 
@@ -148,6 +149,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 
 	index = T.lscalar()
 	index_end = T.lscalar()
+	lr = T.scalar('lr')
 	x = T.matrix('x')
 	y = T.matrix('y')
 	dropout_on = T.scalar('dropout_on')
@@ -182,7 +184,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 	]
 
 	update1 = [
-		(vparam, momentum_const * vparam - learning_rate * gparam) 
+		(vparam, momentum_const * vparam - lr * gparam) 
 		for vparam, gparam in zip(vparams, gparams)
 	]
 	update2 = [
@@ -192,7 +194,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 
 	print '... building training function ...'
 	train_model = theano.function(
-		inputs=[index, dropout_on],
+		inputs=[index, dropout_on,lr],
 		outputs=[cost],
 		updates=update1 + update2,
 		givens={
@@ -241,10 +243,12 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 
 	for epoch in xrange(training_epochs):
 		for batch_index in xrange(n_train_batches):
-			train_model(batch_index, 1)
+			cur_lr = learning_rate * (1-lr_decay)**epoch
+			train_model(batch_index, 1, cur_lr)
 		
 		train_MSE[epoch], train_error_rate[epoch] = train_error(0)
 		test_MSE[epoch], test_error_rate[epoch] = test_error(0)
+		
 		print v_hidden
 		print 'Epoch ',epoch,', train ', cost_type,' ',\
 			np.round(train_MSE[epoch],4), ', train error ', \
