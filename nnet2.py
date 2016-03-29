@@ -114,11 +114,24 @@ class nnet2(object):
 	def nll(self, y):
 		# return - T.mean(T.dot(T.log(self.output.T), y))
 		return -T.mean(
-			T.log(self.output)[T.arange(y.shape[0]), 
-				T.argmax(y,axis=1)])
+			T.log(self.output)[T.nonzero(y)]
+			)
+
+	def nll2(self, y):
+		# for predicting whether a course is taken
+		return -T.mean(
+			T.log(self.output)[T.nonzero(y)] + 
+			T.log(1 - self.output)[T.nonzero(1 - y)]
+			)
 
 	def error(self,y):
 		return T.mean(T.neq(self.outclass, T.argmax(y, axis=1)))
+
+	def error2(self,y):
+		# for predicting whether a course is taken
+		return T.mean(
+				T.neq(T.round(self.output),y)
+				)
 
 def run_nnet(dataset, labelset, learning_rate = 1e-5, 
 	training_epochs = 15,
@@ -126,7 +139,7 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 	momentum_const = 0.9, cost_type = 'MSE',
 	actv_fcn = None, out_actv_fcn = None,
 	dropout_rate = 0.3, dropout_switch = True,
-	lr_decay = 1e-2):
+	lr_decay = 1e-2, pred_course = False):
 	# input.nm is used in gradients
 	theano.config.on_unused_input = 'warn'
 
@@ -160,6 +173,10 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 
 	if actv_fcn == None:
 		actv_fcn = T.nnet.sigmoid
+		actv_fcn_name = 'Sigmoid'
+	else:
+		actv_fcn_name = actv_fcn.func_name
+	
 	if out_actv_fcn == None:
 		out_actv_fcn = T.nnet.softmax
 
@@ -168,14 +185,19 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 		hid_act = actv_fcn, out_act = out_actv_fcn)
 	output = nn.output
 
-	if cost_type == 'NLL':
+	if (cost_type == 'NLL') & (pred_course):
 		cost = nn.nll(y)
+	elif (cost_type == 'NLL') & (~pred_course):
+		cost = nn.nll2(y)
 	else:
 		cost = nn.mse(y)
 
 	# cost2 = T.log(nn.output)[T.arange(y.shape[0]), T.argmax(y,axis=1)]
 
-	error_rate = nn.error(y)
+	if pred_course:
+		error_rate = nn.error2(y)
+	else:
+		error_rate = nn.error(y)
 
 	gparams = [T.grad(cost, param) for param in nn.params]
 	
@@ -251,7 +273,8 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 		
 		if ((epoch % 10) == 0):
 			print 'v_hid: ', v_hidden, \
-				', batch', batch_size
+				', batch: ', batch_size, \
+				', actv_fcn: ', actv_fcn_name
 			print 'lr: ', learning_rate, \
 				', decay: ', lr_decay, \
 				', momentum: ', momentum_const, \

@@ -206,6 +206,34 @@ def nn_plot_results(sgMaj_train_MSE, sgMaj_test_MSE,
 	plt.show()
 
 
+def naive_class(sgdata,sgDeptRowFilter,sgDept_comp):
+	groupByIdDept = sgdata[sgdata['UPPER_YEAR']==False][[\
+						'ID','DEPT','CREDIT']].groupby(['ID','DEPT'])
+	aggByIdDept = groupByIdDept.sum().add_suffix('_TOTAL').reset_index()
+	groupByIdDeptCred = aggByIdDept.groupby('ID')
+	aggByIdDeptCred = groupByIdDeptCred.apply(get_major_prop)
+	#
+	sgIdDept_pivot = aggByIdDeptCred.pivot(index = 'ID', \
+						columns = 'DEPT', values = 'DEPT_PROP')
+	sgDept = sgIdDept_pivot.columns.values
+	sgDept_matrix = np.asarray(sgIdDept_pivot)
+	sgDept_nan = np.isnan(sgDept_matrix)
+	sgDept_matrix[sgDept_nan] = 0
+	#
+	sgMaj_argmax = np.argmax(sgDept_matrix, axis = 1)
+	sgMaj_matrix = np.zeros((np.shape(sgDept_matrix)[0],
+							np.shape(sgDept_comp)[0]))
+	for i in range(np.shape(sgDept_matrix)[0]):
+		col_ind = np.argmax(sgDept_comp==sgDept[sgMaj_argmax[i]])
+		sgMaj_matrix[i,col_ind] = 1
+	#
+	# # Filter for more than 100 graduates
+	# # total 47
+	# sgDeptColFilter = np.sum(sgMaj_matrix,axis=0) > 100
+	# sgDeptRowFilter = np.sum(sgMaj_matrix[:,sgDeptColFilter], \
+	# 							axis=1).astype(bool)
+	return sgMaj_matrix[sgDeptRowFilter,:]
+
 
 
 

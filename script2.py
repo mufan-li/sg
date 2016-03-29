@@ -20,6 +20,7 @@ from nnet2 import *
 # execfile('preprocess.py')
 sgdata_matrix = np.load('sgdata_matrix.npy')
 sgdata_matrix_ly = np.load('sgdata_matrix_ly.npy')
+sgdata_matrix_uy = np.load('sgdata_matrix_uy.npy')
 sgDept_matrix = np.load('sgDept_matrix.npy')
 missing_entries = np.load('missing_entries.npy')
 sgMaj_matrix = np.load('sgMaj_matrix.npy')
@@ -27,19 +28,39 @@ sgMaj_matrix = np.load('sgMaj_matrix.npy')
 # # matrix factorization
 # execfile('mf_glrm.py')
 
-sgMaj_pred, sgMaj_train_MSE, sgMaj_test_MSE, sgMaj_train_error_rate, \
-	sgMaj_test_error_rate = run_nnet(
-		sgdata_matrix_ly, sgMaj_matrix, 
-		learning_rate = 1e-1, training_epochs = 500,
+# binary
+# sgdata_matrix_ly = (sgdata_matrix_ly>0).astype(int)
+sgdata_matrix_uy = (sgdata_matrix_uy>0).astype(int)
+
+# # Predict Majors
+# sgMaj_pred, sgMaj_train_MSE, sgMaj_test_MSE, sgMaj_train_error_rate, \
+# 	sgMaj_test_error_rate = run_nnet(
+# 		sgdata_matrix_ly, sgMaj_matrix, 
+# 		learning_rate = 1e1, training_epochs = 500,
+# 		batch_size = 100, 
+# 		v_hidden = [200],
+# 		momentum_const = 0, 
+# 		cost_type = 'NLL', 
+# 		actv_fcn = relu,
+# 		# out_actv_fcn = T.nnet.sigmoid,
+# 		dropout_rate = 0.3, lr_decay = 0.02)
+
+# nn_plot_results(sgMaj_train_MSE, sgMaj_test_MSE, 
+# 	sgMaj_train_error_rate, sgMaj_test_error_rate)
+
+# Predict Course Selection
+sguy_pred, sguy_train_MSE, sguy_test_MSE, sguy_train_error_rate, \
+	sguy_test_error_rate = run_nnet(
+		sgdata_matrix_ly, sgdata_matrix_uy, 
+		learning_rate = 1e1, training_epochs = 50,
 		batch_size = 100, 
-		v_hidden = [100],
+		v_hidden = [50,50,50,50,50],
 		momentum_const = 0, 
-		cost_type = 'NLL', actv_fcn = relu,
-		dropout_rate = 0.5, lr_decay = 0.005)
-
-nn_plot_results(sgMaj_train_MSE, sgMaj_test_MSE, 
-	sgMaj_train_error_rate, sgMaj_test_error_rate)
-
+		cost_type = 'NLL', 
+		actv_fcn = relu,
+		out_actv_fcn = T.nnet.sigmoid,
+		dropout_rate = 0.3, lr_decay = 0.02,
+		pred_course = True)
 
 # print np.round(sgMaj_pred[:10])
 # print sgMaj_matrix[:10]

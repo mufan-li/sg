@@ -21,9 +21,10 @@ sgdata_raw['UPPER_YEAR'] = sgdata_raw['COURSE'].str[3].astype(int) >= 3
 
 # filter for only math courses
 # sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
-# 	['MAT','STAT','PHY','CSC','ECO','COMPG','ENG']
+# 	['MAT','STAT','PHY','CSC','ECO','COMPG','ENG','HIS','POL']
 # 	# ['MAT','PHY']
 # 	# ['COMPG','ECO']
+# 	# ['ENG','HIS','POL']
 # 	)]
 
 # size of data
@@ -151,25 +152,38 @@ sgdata_pivot_ly = sgdataFilter_ly.pivot(index='ID', \
 				columns='COURSE', values='GRADE')
 sgdata_matrix_ly = np.asarray(sgdata_pivot_ly)
 
+# upper years only
+sgGroup_uy = sgdata[sgdata['UPPER_YEAR']][[\
+			'ID','COURSE','GRADE']].groupby(['ID', 'COURSE'])
+sgdataFilter_uy = sgGroup_uy.last().reset_index()
+sgdata_pivot_uy = sgdataFilter_uy.pivot(index='ID', \
+				columns='COURSE', values='GRADE')
+sgdata_matrix_uy = np.asarray(sgdata_pivot_uy)
+
 # set to zero
 missing_entries = np.isnan(sgdata_matrix)
 sgdata_matrix[missing_entries] = 0
 missing_entries_ly = np.isnan(sgdata_matrix_ly)
 sgdata_matrix_ly[missing_entries_ly] = 0
+missing_entries_uy = np.isnan(sgdata_matrix_uy)
+sgdata_matrix_uy[missing_entries_uy] = 0
 
 # rescale to [0,1]
 sgdata_matrix = sgdata_matrix/100. 
 sgdata_matrix_ly = sgdata_matrix_ly/100. 
+sgdata_matrix_uy = sgdata_matrix_uy/100.
 
 # Filter for majors
 sgdata_matrix = sgdata_matrix[sgDeptRowFilter,:]
 sgdata_matrix_ly = sgdata_matrix_ly[sgDeptRowFilter,:]
+sgdata_matrix_uy = sgdata_matrix_uy[sgDeptRowFilter,:]
 sgDept_matrix = sgDept_matrix[sgDeptRowFilter,:][:,sgDeptColFilter]
 missing_entries = missing_entries[sgDeptRowFilter,:]
 sgMaj_matrix = sgMaj_matrix[sgDeptRowFilter,:][:,sgDeptColFilter]
 
 np.save('sgdata_matrix',sgdata_matrix)
 np.save('sgdata_matrix_ly',sgdata_matrix_ly)
+np.save('sgdata_matrix_uy',sgdata_matrix_uy)
 np.save('sgDept_matrix',sgDept_matrix)
 np.save('missing_entries',missing_entries)
 np.save('sgMaj_matrix',sgMaj_matrix)
@@ -188,4 +202,20 @@ np.save('sgMaj_matrix',sgMaj_matrix)
 
 # maj_counts = np.sort(np.sum(sgMaj_matrix,axis=0)).astype(int)
 # sgdata_raw.ix[sgdata_raw.DEPT == 'WDW','COURSE'].unique()
+
+####################
+# naive classifier
+####################
+
+# sgMaj_naive_matrix = naive_class(sgdata,sgDeptRowFilter,sgDept)
+# naive_er = np.sum(sgMaj_naive_matrix[:,sgDeptColFilter] \
+# 				- sgMaj_matrix) \
+# 	/ sgMaj_matrix.shape[0]
+# print 'Naive Classifier Error: ', naive_er
+
+
+
+
+
+
 
