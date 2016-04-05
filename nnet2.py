@@ -148,13 +148,16 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 
 	# ~80% of data for training
 	train_idx = dataset.shape[0]*4/5
-	train_set_x = shared_data(dataset[:train_idx, :])
+	idx_array = np.arange(dataset.shape[0])
+	# Shuffle indices
+	rd.shuffle(idx_array)
+	train_set_x = shared_data(dataset[idx_array[:train_idx], :])
 	# train_not_miss = shared_data( ~(dataset[:train_idx, :]==0) )
-	test_set_x = shared_data(dataset[train_idx:, :])
+	test_set_x = shared_data(dataset[idx_array[train_idx:], :])
 	# test_not_miss = shared_data( ~(dataset[train_idx:, :]==0) )
 
-	train_set_y = shared_data(labelset[:train_idx, :])
-	test_set_y = shared_data(labelset[train_idx:, :])
+	train_set_y = shared_data(labelset[idx_array[:train_idx], :])
+	test_set_y = shared_data(labelset[idx_array[train_idx:], :])
 
 	# complete set
 	# missing_entries = shared_data(~(dataset==0))
@@ -286,8 +289,9 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 	import matplotlib.pyplot as plt
 
 	for epoch in xrange(training_epochs):
-		for batch_index in xrange(n_train_batches):
-			cur_lr = learning_rate * (1-lr_decay)**epoch
+		cur_lr = learning_rate * (1-lr_decay)**epoch
+
+		for batch_index in xrange(n_train_batches):	
 			train_model(batch_index, 1, cur_lr)
 		
 		train_MSE[epoch], train_error_rate[epoch] = train_error(0)
