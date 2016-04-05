@@ -5,6 +5,7 @@ import numpy.random as rd
 import theano.tensor as T
 import theano
 import timeit
+import lasagne as lsg
 
 from nnet2_functions import *
 from sg_functions import *
@@ -140,7 +141,8 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 	momentum_const = 0.9, cost_type = 'MSE',
 	actv_fcn = None, out_actv_fcn = None,
 	dropout_rate = 0.3, dropout_switch = True,
-	lr_decay = 1e-2, pred_course = False):
+	lr_decay = 1e-2, pred_course = False,
+	update_method = 'momentum'):
 	# input.nm is used in gradients
 	theano.config.on_unused_input = 'warn'
 
@@ -200,26 +202,45 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 	else:
 		error_rate = nn.error(y)
 
-	gparams = [T.grad(cost, param) for param in nn.params]
-	
-	vparams = [theano.shared(param.get_value(),borrow=True)
-				for param in nn.params
-	]
+	if (update_method == 'adam'):
+		updates = lsg.updates.adam(
+			cost, 
+			nn.params, 
+			learning_rate=lr, 
+			beta1=0.9, 
+			beta2=0.999, 
+			epsilon=1e-08)
+	elif (update_method == 'adadelta'):
+		 updates = lsg.updates.adadelta(
+		 	cost,
+		 	nn.params,
+		 	learning_rate=lr, 
+		 	rho=0.95, 
+		 	epsilon=1e-06)
+	else:
+		gparams = [T.grad(cost, param) for param in nn.params]
+		
+		vparams = [theano.shared(param.get_value(),borrow=True)
+					for param in nn.params
+		]
 
-	update1 = [
-		(vparam, momentum_const * vparam - lr * gparam) 
-		for vparam, gparam in zip(vparams, gparams)
-	]
-	update2 = [
-		(param, param + vparam) 
-		for param, vparam in zip(nn.params, vparams)
-	]
+		update1 = [
+			(vparam, momentum_const * vparam - lr * gparam) 
+			for vparam, gparam in zip(vparams, gparams)
+		]
+		update2 = [
+			(param, param + vparam) 
+			for param, vparam in zip(nn.params, vparams)
+		]
+		updates = update1 + update2
+
+	
 
 	print '... building training function ...'
 	train_model = theano.function(
-		inputs=[index, dropout_on,lr],
+		inputs=[index, dropout_on, lr],
 		outputs=[cost],
-		updates=update1 + update2,
+		updates=updates,
 		givens={
 			x: train_set_x[index * batch_size: (index+1) * batch_size],
 			y: train_set_y[index * batch_size: (index+1) * batch_size]

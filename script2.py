@@ -40,13 +40,14 @@ sgMaj_pred, sgMaj_train_MSE, sgMaj_test_MSE, sgMaj_train_error_rate, \
 	sgMaj_test_error_rate = run_nnet(
 		sgdata_matrix_ly, sgMaj_matrix, 
 		learning_rate = 1e0, training_epochs = 500,
-		batch_size = 100, 
-		v_hidden = [500],
+		batch_size = 50, 
+		v_hidden = [500,500,500,500],
 		momentum_const = 0, 
 		cost_type = 'NLL', 
 		actv_fcn = relu,
 		# out_actv_fcn = T.nnet.sigmoid,
-		dropout_rate = 0.3, lr_decay = 0.01)
+		dropout_rate = 0.3, lr_decay = 0,
+		update_method = 'adadelta')
 
 # nn_plot_results(sgMaj_train_MSE, sgMaj_test_MSE, 
 # 	sgMaj_train_error_rate, sgMaj_test_error_rate)
@@ -63,7 +64,8 @@ sgMaj_pred, sgMaj_train_MSE, sgMaj_test_MSE, sgMaj_train_error_rate, \
 # 		actv_fcn = relu,
 # 		out_actv_fcn = T.nnet.sigmoid,
 # 		dropout_rate = 0.3, lr_decay = 0.01,
-# 		pred_course = True)
+# 		pred_course = True,
+#		update_method = 'adadelta')
 
 # print np.mean(1-sguy_pred[sgdata_matrix_uy.astype(bool)])
 
