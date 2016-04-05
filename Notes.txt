@@ -24,6 +24,11 @@ Set not taken as -5
 Set not taken as -10 
  - 15.5%
 
+Added adadelta and adam
+ - not super effective
+
+Fixed NLL for courses
+
 ################################################################
 
 Marh 29, 2016

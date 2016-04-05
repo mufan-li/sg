@@ -122,8 +122,9 @@ class nnet2(object):
 	def nll2(self, y):
 		# for predicting whether a course is taken
 		return -T.mean(
-			T.log(self.output)[T.nonzero(y)] + 
-			T.log(1 - self.output)[T.nonzero(1 - y)]
+				T.log(self.output)[T.nonzero(y)]
+			) - T.mean(
+				T.log(1 - self.output)[T.nonzero(1 - y)]
 			)
 
 	def error(self,y):

@@ -56,17 +56,21 @@ sgdata_matrix_uy = (sgdata_matrix_uy>0).astype(int)
 sguy_pred, sguy_train_MSE, sguy_test_MSE, sguy_train_error_rate, \
 	sguy_test_error_rate = run_nnet(
 		sgdata_matrix_ly, sgdata_matrix_uy, 
-		learning_rate = 1e2, training_epochs = 5,
-		batch_size = 100, 
-		v_hidden = [500,500,500,500],
+		learning_rate = 1e-1, training_epochs = 100,
+		batch_size = 50, 
+		v_hidden = [500,500,500],
 		momentum_const = 0, 
-		cost_type = 'MSE', 
+		cost_type = 'NLL', 
 		actv_fcn = relu,
 		out_actv_fcn = T.nnet.sigmoid,
 		dropout_rate = 0.3, lr_decay = 0.01,
 		pred_course = True,
-		update_method = 'adadelta')
-print np.mean(1-sguy_pred[sgdata_matrix_uy.astype(bool)])
+		update_method = 'adam')
+
+print 'Courses Taken: ', \
+	np.mean(1-sguy_pred[sgdata_matrix_uy.astype(bool)])
+print 'Courses Not Taken: ', \
+	np.mean(1-sguy_pred[(1-sgdata_matrix_uy).astype(bool)])
 
 # print np.round(sgMaj_pred[:10])
 # print sgMaj_matrix[:10]
