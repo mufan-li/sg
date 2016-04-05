@@ -29,38 +29,43 @@ sgMaj_matrix = np.load('sgMaj_matrix.npy')
 # execfile('mf_glrm.py')
 
 # binary
+
+sgdata_matrix_ly[sgdata_matrix_ly==0] = -1
+# sgdata_matrix_ly = np.exp((sgdata_matrix_ly - 0.5)*5)
 # sgdata_matrix_ly = (sgdata_matrix_ly>0).astype(int)
 sgdata_matrix_uy = (sgdata_matrix_uy>0).astype(int)
 
-# # Predict Majors
-# sgMaj_pred, sgMaj_train_MSE, sgMaj_test_MSE, sgMaj_train_error_rate, \
-# 	sgMaj_test_error_rate = run_nnet(
-# 		sgdata_matrix_ly, sgMaj_matrix, 
-# 		learning_rate = 1e1, training_epochs = 500,
-# 		batch_size = 100, 
-# 		v_hidden = [200],
-# 		momentum_const = 0, 
-# 		cost_type = 'NLL', 
-# 		actv_fcn = relu,
-# 		# out_actv_fcn = T.nnet.sigmoid,
-# 		dropout_rate = 0.3, lr_decay = 0.02)
+# Predict Majors
+sgMaj_pred, sgMaj_train_MSE, sgMaj_test_MSE, sgMaj_train_error_rate, \
+	sgMaj_test_error_rate = run_nnet(
+		sgdata_matrix_ly, sgMaj_matrix, 
+		learning_rate = 1e0, training_epochs = 500,
+		batch_size = 100, 
+		v_hidden = [500],
+		momentum_const = 0, 
+		cost_type = 'NLL', 
+		actv_fcn = relu,
+		# out_actv_fcn = T.nnet.sigmoid,
+		dropout_rate = 0.3, lr_decay = 0.01)
 
 # nn_plot_results(sgMaj_train_MSE, sgMaj_test_MSE, 
 # 	sgMaj_train_error_rate, sgMaj_test_error_rate)
 
-# Predict Course Selection
-sguy_pred, sguy_train_MSE, sguy_test_MSE, sguy_train_error_rate, \
-	sguy_test_error_rate = run_nnet(
-		sgdata_matrix_ly, sgdata_matrix_uy, 
-		learning_rate = 1e1, training_epochs = 50,
-		batch_size = 100, 
-		v_hidden = [50,50,50,50,50],
-		momentum_const = 0, 
-		cost_type = 'NLL', 
-		actv_fcn = relu,
-		out_actv_fcn = T.nnet.sigmoid,
-		dropout_rate = 0.3, lr_decay = 0.02,
-		pred_course = True)
+# # Predict Course Selection
+# sguy_pred, sguy_train_MSE, sguy_test_MSE, sguy_train_error_rate, \
+# 	sguy_test_error_rate = run_nnet(
+# 		sgdata_matrix_ly, sgdata_matrix_uy, 
+# 		learning_rate = 1e1, training_epochs = 100,
+# 		batch_size = 20, 
+# 		v_hidden = [500,500,500,500],
+# 		momentum_const = 0, 
+# 		cost_type = 'MSE', 
+# 		actv_fcn = relu,
+# 		out_actv_fcn = T.nnet.sigmoid,
+# 		dropout_rate = 0.3, lr_decay = 0.01,
+# 		pred_course = True)
+
+# print np.mean(1-sguy_pred[sgdata_matrix_uy.astype(bool)])
 
 # print np.round(sgMaj_pred[:10])
 # print sgMaj_matrix[:10]

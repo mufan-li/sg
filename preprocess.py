@@ -13,17 +13,20 @@ from sg_functions import *
 print '... prepocessing data'
 
 # import .csv file of data
-sgdata_raw = pd.read_csv('allgradesanon2.csv')
+sgdata_raw = pd.read_csv('allgradesanon3.csv')
 sgdata_raw['CREDIT'] = 0.5
 sgdata_raw.ix[sgdata_raw.WEIGHT == 'Y','CREDIT'] = 1
 sgdata_raw.ix[sgdata_raw.GRADE == 0,'GRADE'] = 1
-sgdata_raw['UPPER_YEAR'] = sgdata_raw['COURSE'].str[3].astype(int) >= 3
+# sgdata_raw['UPPER_YEAR'] = sgdata_raw['COURSE'].str[3].astype(int) >= 3
+
+# Year starts at 0
+sgdata_raw['UPPER_YEAR'] = sgdata_raw['YEAR'] >= 2
 
 # filter for only math courses
 # sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
 # 	['MAT','STAT','PHY','CSC','ECO','COMPG','ENG','HIS','POL']
 # 	# ['MAT','PHY']
-# 	# ['COMPG','ECO']
+# 	# ['ECO']
 # 	# ['ENG','HIS','POL']
 # 	)]
 

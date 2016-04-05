@@ -105,6 +105,7 @@ class nnet2(object):
 			self.params += self.layers[i].params
 			x_in = self.layers[i].output
 
+		# output of the final layer
 		self.output = x_in
 		self.outclass = T.argmax(self.output, axis=1)
 
@@ -185,9 +186,9 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 		hid_act = actv_fcn, out_act = out_actv_fcn)
 	output = nn.output
 
-	if (cost_type == 'NLL') & (pred_course):
+	if (cost_type == 'NLL') & (~pred_course):
 		cost = nn.nll(y)
-	elif (cost_type == 'NLL') & (~pred_course):
+	elif (cost_type == 'NLL') & (pred_course):
 		cost = nn.nll2(y)
 	else:
 		cost = nn.mse(y)

@@ -12,6 +12,56 @@ Additional
 
 ################################################################
 
+April 5, 2016
+
+8 Majors
+Set not taken as 0
+ - 15.9%
+Set not taken as -1
+ - 15.5%
+Set not taken as -5
+ - 15.3%
+Set not taken as -10 
+ - 15.5%
+
+################################################################
+
+Marh 29, 2016
+
+Use first year as input data
+Replace courses not taken as -1
+Research how to incorporate structure into input data
+Preprocess data of first 2 years of courses
+April 13
+Predicting grades
+
+################################################################
+
+March 28, 2016
+
+Added prediction for course taken or not
+
+Entire Set - lr = 10, decay = 0.02, momen = 0, dropout = 0.3
+ [100] - 39%
+ [200] - <40%
+ [500] - 41%
+ [100,100] - <37%
+ [200,200] - <36%
+ [100,100,100] - <35%
+ [100,100,100,100] - <35%
+ [100^5] - <35%
+ [1000] - 42%
+ [2000] - 42%
+ [200,200,200] - 34%
+ [500,500,500] - 33%
+ [1000,1000,1000] - 34%
+ [1000^5] - 32%
+
+[MAT,PHY]
+ [500^5] - 31.5%
+
+################################################################
+
 March 27, 2016
 
 Filtered for majors with at least 100 students
