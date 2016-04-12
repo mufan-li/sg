@@ -58,7 +58,7 @@ sguy_pred, sguy_train_MSE, sguy_test_MSE, sguy_train_error_rate, \
 		sgdata_matrix_ly, sgdata_matrix_uy, 
 		learning_rate = 1e-1, training_epochs = 100,
 		batch_size = 50, 
-		v_hidden = [500,500,500],
+		v_hidden = [200,200,200,200,200,200],
 		momentum_const = 0, 
 		cost_type = 'NLL', 
 		actv_fcn = relu,

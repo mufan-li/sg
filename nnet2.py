@@ -321,62 +321,89 @@ def run_nnet(dataset, labelset, learning_rate = 1e-5,
 
 if __name__ == "__main__":
 
-	sN = 100
-	learning_rate = 1e-5
-	momentum = 0.9
+	import pickle
 
-	xval = rd.uniform(0,5,sN).reshape(sN,1)
-	trainx = theano.shared(
-				value = np.matrix(xval,
-					dtype = theano.config.floatX),
-				borrow = True
-				)
+	print '...loading file'
+	mnist_file = 'mnist.pkl'
+	mnist_data = pickle.load( open( mnist_file, "rb" ) )
+	tmp = np.zeros((mnist_data[0][1].shape[0],10))
 
-	yval = np.asarray((xval>2).astype(float),
-					dtype = theano.config.floatX)
-	yval = np.concatenate([yval,1-yval],1);
-	trainy = theano.shared(
-			value = yval,
-			borrow = True
-			)
+	for k in range(mnist_data[0][1].shape[0]):
+		idx = np.mod(mnist_data[0][1][k],10)
+		tmp[k,idx] = 1
 
-	x = T.matrix('x')
-	y = T.matrix('y')
-	end = T.lscalar()
+	mnist_train_y = tmp
 
-	nn = nnet2(x, xval.shape[1], 2, yval.shape[1], 
-		out_act = T.nnet.softmax)
-	output = nn.output
-	# cost = nn.mse(y)
-	cost = nn.nll(y)
-	gparams = [T.grad(cost, param) for param in nn.params]
+	mnist_pred, mnist_train_MSE, mnist_test_MSE, mnist_train_error_rate, \
+	mnist_test_error_rate = run_nnet(
+		mnist_data[0][0], mnist_train_y, 
+		learning_rate = 1e-1, training_epochs = 100,
+		batch_size = 100, 
+		v_hidden = [1000,1000],
+		momentum_const = 0, 
+		cost_type = 'NLL', 
+		actv_fcn = relu,
+		out_actv_fcn = T.nnet.sigmoid,
+		dropout_rate = 0.3, lr_decay = 0.01,
+		pred_course = True,
+		update_method = 'adam')
+
+	# sN = 100
+	# learning_rate = 1e-5
+	# momentum = 0.9
+
+	# xval = rd.uniform(0,5,sN).reshape(sN,1)
+	# trainx = theano.shared(
+	# 			value = np.matrix(xval,
+	# 				dtype = theano.config.floatX),
+	# 			borrow = True
+	# 			)
+
+	# yval = np.asarray((xval>2).astype(float),
+	# 				dtype = theano.config.floatX)
+	# yval = np.concatenate([yval,1-yval],1);
+	# trainy = theano.shared(
+	# 		value = yval,
+	# 		borrow = True
+	# 		)
+
+	# x = T.matrix('x')
+	# y = T.matrix('y')
+	# end = T.lscalar()
+
+	# nn = nnet2(x, xval.shape[1], 2, yval.shape[1], 
+	# 	out_act = T.nnet.softmax)
+	# output = nn.output
+	# # cost = nn.mse(y)
+	# cost = nn.nll(y)
+	# gparams = [T.grad(cost, param) for param in nn.params]
 	
-	vparams = [theano.shared(param.get_value(),borrow=True)
-				for param in nn.params
-	]
+	# vparams = [theano.shared(param.get_value(),borrow=True)
+	# 			for param in nn.params
+	# ]
 
-	update1 = [
-		(vparam, momentum * vparam - learning_rate * gparam) 
-		for vparam, gparam in zip(vparams, gparams)
-	]
-	update2 = [
-		(param, param + vparam) 
-		for param, vparam in zip(nn.params, vparams)
-	]
+	# update1 = [
+	# 	(vparam, momentum * vparam - learning_rate * gparam) 
+	# 	for vparam, gparam in zip(vparams, gparams)
+	# ]
+	# update2 = [
+	# 	(param, param + vparam) 
+	# 	for param, vparam in zip(nn.params, vparams)
+	# ]
 
-	train_model = theano.function(
-		inputs=[end],
-		outputs=[cost],
-		updates=update1 + update2,
-		givens={
-			x: trainx[:end],
-			y: trainy[:end]
-		}
-	)
+	# train_model = theano.function(
+	# 	inputs=[end],
+	# 	outputs=[cost],
+	# 	updates=update1 + update2,
+	# 	givens={
+	# 		x: trainx[:end],
+	# 		y: trainy[:end]
+	# 	}
+	# )
 
-	bN = sN
-	for i in range(10):
-		print train_model(bN)[0]
+	# bN = sN
+	# for i in range(10):
+	# 	print train_model(bN)[0]
 
 	# theano.printing.pprint(nn.output)
 	# theano.printing.debugprint(gparams[0])

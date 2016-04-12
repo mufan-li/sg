@@ -12,6 +12,19 @@ Additional
 
 ################################################################
 
+April 5, 2016 - Meeting
+
+Filter by both date and course code
+Additional variable for course taken
+Redo linear regression, naive method
+
+Fraction of 100 200 courses taken in the first two years
+ - related basic statistics
+
+Try first year, both dates and courses
+
+################################################################
+
 April 5, 2016
 
 8 Majors
