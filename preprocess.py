@@ -24,8 +24,8 @@ sgdata_raw['UPPER_YEAR'] = sgdata_raw['YEAR'] >= 2
 
 # filter for only math courses
 sgdata_raw = sgdata_raw.ix[sgdata_raw.DEPT.isin(
-	# ['MAT','STAT','PHY','CSC','ECO','COMPG','ENG','HIS','POL']
-	['MAT','PHY']
+	['MAT','STAT','PHY','CSC','ECO','COMPG','ENG','HIS','POL']
+	# ['MAT','PHY']
 	# ['ECO']
 	# ['ENG','HIS','POL']
 	)]

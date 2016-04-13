@@ -348,6 +348,8 @@ if __name__ == "__main__":
 		pred_course = True,
 		update_method = 'adam')
 
+	nn_plot_results(mnist_train_MSE, mnist_test_MSE, 
+		mnist_train_error_rate, mnist_test_error_rate)
 	# sN = 100
 	# learning_rate = 1e-5
 	# momentum = 0.9

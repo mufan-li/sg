@@ -12,6 +12,18 @@ Additional
 
 ################################################################
 
+April 12, 2016
+
+MNIST
+[500^4] - train  NLL   0.5899 , train error  0.0002 , test error  0.007
+[1000^4] - train  NLL   0.5895 , train error  0.0001 , test error  0.0057
+[500^6] - train  NLL   0.5897 , train error  0.0002 , test error  0.0044
+[500^8] - train  NLL   0.5903 , train error  0.0003 , test error  0.0043
+
+
+
+################################################################
+
 April 5, 2016 - Meeting
 
 Filter by both date and course code
