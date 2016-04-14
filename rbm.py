@@ -385,11 +385,11 @@ def run_rbm(dataset, learning_rate = 0.1,
 	cost2, updates2 = \
 					rbm.get_cost_updates(lr=learning_rate,
 						mc=momentum_const,
-						persistent=None, k=10)
+						persistent=None, k=5)
 	cost3, updates3 = \
 					rbm.get_cost_updates(lr=learning_rate,
 						mc=momentum_const,
-						persistent=None, k=30)
+						persistent=None, k=10)
 
 	# # create directory
 	# if not os.path.isdir(output_folder):

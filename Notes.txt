@@ -1,10 +1,9 @@
 Notes 
 
 Next 
- - randomize train/test data
- - predict grades
  - interpretability
  - report
+ - regularize the number of courses predicting
 
 Additional
  - use dashboard
@@ -13,6 +12,17 @@ Additional
 ################################################################
 
 April 13, 2016
+
+Courses - Entire Set
+
+100 - .0163 - .4486
+500 - .0176 - .4587
+1000 - .0205 - .4538
+100^2 - .0204 - .4486
+500^2 - .0176 - .4281
+1000^2 - .0202 - .4164
+500^4 - .0190 - .3373
+1000^4 - .0207 - .3440
 
 Major - Entire Set
 

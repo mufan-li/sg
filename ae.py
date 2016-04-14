@@ -12,6 +12,7 @@ import theano.tensor as T
 import os
 
 from theano.tensor.shared_randomstreams import RandomStreams
+from theano.tensor.nnet.bn import batch_normalization
 
 from sg_functions import *
 
@@ -75,6 +76,16 @@ class dA(object):
 		self.W_prime = self.W.T
 		self.theano_rng = theano_rng
 
+		self.gamma_h = theano.shared(value = numpy.ones((n_hidden,), 
+						dtype=theano.config.floatX), name='gamma')
+		self.beta_h = theano.shared(value = numpy.zeros((n_hidden,), 
+						dtype=theano.config.floatX), name='beta')
+
+		self.gamma_o = theano.shared(value = numpy.ones((n_visible,), 
+						dtype=theano.config.floatX), name='gamma')
+		self.beta_o = theano.shared(value = numpy.zeros((n_visible,), 
+						dtype=theano.config.floatX), name='beta')
+
 		if input is None:
 			self.x = T.dmatrix(name = 'input')
 		else:
@@ -93,12 +104,22 @@ class dA(object):
 				dtype = theano.config.floatX) * input
 
 	def get_hidden_values(self, input):
-		return self.actv_fcn(T.dot(input, self.W) + 
-				self.b)
+		lin_output = T.dot(input, self.W) + self.b
+		bn_output = batch_normalization(inputs = lin_output,
+			gamma = self.gamma_h, beta = self.beta_h, 
+			mean = lin_output.mean((0,), keepdims=True),
+			std = lin_output.std((0,), keepdims = True),
+						mode='low_mem')
+		return self.actv_fcn(bn_output)
 
 	def get_reconstructed_input(self, hidden):
-		return self.actv_fcn(T.dot(hidden, self.W_prime)+
-				self.b_prime)
+		lin_output = T.dot(hidden, self.W_prime) + self.b_prime
+		bn_output = batch_normalization(inputs = lin_output,
+			gamma = self.gamma_o, beta = self.beta_o, 
+			mean = lin_output.mean((0,), keepdims=True),
+			std = lin_output.std((0,), keepdims = True),
+						mode='low_mem')
+		return self.actv_fcn(bn_output)
 	
 	def predict(self, input):
 		hidden = self.get_hidden_values(input)

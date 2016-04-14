@@ -30,7 +30,7 @@ sgMaj_matrix = np.load('sgMaj_matrix.npy')
 
 # binary
 
-sgdata_matrix_ly[sgdata_matrix_ly==0] = -1
+# sgdata_matrix_ly[sgdata_matrix_ly==0] = -1
 # sgdata_matrix_ly = np.exp((sgdata_matrix_ly - 0.5)*5)
 # sgdata_matrix_ly = (sgdata_matrix_ly>0).astype(int)
 sgdata_matrix_uy = (sgdata_matrix_uy>0).astype(int)
@@ -39,63 +39,70 @@ sgdata_matrix_uy = (sgdata_matrix_uy>0).astype(int)
 # sgMaj_pred, sgMaj_train_MSE, sgMaj_test_MSE, sgMaj_train_error_rate, \
 # 	sgMaj_test_error_rate = run_nnet(
 # 		sgdata_matrix_ly, sgMaj_matrix, 
-# 		learning_rate = 1e-2, training_epochs = 100,
+# 		learning_rate = 1e-1, training_epochs = 100,
 # 		batch_size = 50, 
-# 		v_hidden = [100,100,100],
-# 		momentum_const = 0,
+# 		v_hidden = [200,200,200],
+# 		momentum_const = 0.9,
 # 		cost_type = 'NLL', 
 # 		actv_fcn = relu,
 # 		# out_actv_fcn = T.nnet.sigmoid,
-# 		dropout_rate = 0.5, lr_decay = 0,
+# 		dropout_rate = 0.3, lr_decay = 0,
 # 		update_method = 'momentum')
 
 # print np.min(sgMaj_test_error_rate)
 # nn_plot_results(sgMaj_train_MSE, sgMaj_test_MSE, 
 # 	sgMaj_train_error_rate, sgMaj_test_error_rate)
 
-# Predict Course Selection
-sguy_pred, sguy_train_MSE, sguy_test_MSE, sguy_train_error_rate, \
-	sguy_test_error_rate = run_nnet(
-		sgdata_matrix_ly, sgdata_matrix_uy, 
-		learning_rate = 1e-2, training_epochs = 200,
-		batch_size = 1000, 
-		v_hidden = [100,100,100,100,100,100],
-		momentum_const = 0, 
-		cost_type = 'NLL', 
-		actv_fcn = relu,
-		out_actv_fcn = T.nnet.sigmoid,
-		dropout_rate = 0.3, lr_decay = 0,
-		pred_course = True,
-		update_method = 'adam')
+# # Predict Course Selection
+# sguy_pred, sguy_train_MSE, sguy_test_MSE, sguy_train_error_rate, \
+# 	sguy_test_error_rate = run_nnet(
+# 		sgdata_matrix_ly, sgdata_matrix_uy, 
+# 		learning_rate = 1e-2, training_epochs = 50,
+# 		batch_size = 50, 
+# 		v_hidden = [100,100,100,100],
+# 		momentum_const = 0, 
+# 		cost_type = 'NLL', 
+# 		actv_fcn = relu,
+# 		out_actv_fcn = T.nnet.sigmoid,
+# 		dropout_rate = 0.3, lr_decay = 0,
+# 		pred_course = True,
+# 		update_method = 'adam')
 
-print 'Courses Taken: ', \
-	np.mean(1-np.round(sguy_pred[sgdata_matrix_uy.astype(bool)]))
-print 'Courses Not Taken: ', \
-	np.mean(np.round(sguy_pred[(1-sgdata_matrix_uy).astype(bool)]))
+# print 'Courses Taken: ', \
+# 	np.mean(1-np.round(sguy_pred[sgdata_matrix_uy.astype(bool)]))
+# print 'Courses Not Taken: ', \
+# 	np.mean(np.round(sguy_pred[(1-sgdata_matrix_uy).astype(bool)]))
 
 # print np.round(sgMaj_pred[:10])
 # print sgMaj_matrix[:10]
 
+
+# # MF
 # sgdata_predict_mf = run_mf(sgdata_matrix,
 # 						learning_rate = 1e-5, 
 # 						training_epochs = 20,
 # 						d = 20, momentum_const = 0.2)
 # summary(sgdata_predict_mf, sgdata_matrix, missing_entries, "MF")
 
-# # RBM
-# sgdata_predict_rbm, rbm = run_rbm(sgdata_matrix, 
-# 						learning_rate = 1e-4, training_epochs = 20,
-# 						n_hidden = 2, batch_size=50,
-# 						rbm_class = RBM)
+# RBM
+sgdata_predict_rbm, rbm = run_rbm(sgdata_matrix, 
+						learning_rate = 1e-4, training_epochs = 100,
+						n_hidden = 100, batch_size=100,
+						rbm_class = RBM)
 # summary(sgdata_predict_rbm, sgdata_matrix, missing_entries, "RBM")
 
-# # AE
-# sg_predict_ae, sg_hid_ae = run_dA(sgdata_matrix,
-# 					learning_rate = 1e-2, training_epochs = 100,
-# 					n_hidden = 100, batch_size = 20,
-# 					corruption_level = 0.3,
-# 					actv_fcn = relu)
+# AE
+sg_predict_ae, sg_hid_ae = run_dA(sgdata_matrix,
+					learning_rate = 1e-4, training_epochs = 100,
+					n_hidden = 100, batch_size = 100,
+					corruption_level = 0.3,
+					momentum_const = 0,
+					actv_fcn = None)
 # summary(sg_predict_ae, sgdata_matrix, missing_entries, "DAE")
+
+# Print Summary
+summary(sgdata_predict_rbm, sgdata_matrix, missing_entries, "RBM")
+summary(sg_predict_ae, sgdata_matrix, missing_entries, "DAE")
 
 # import matplotlib.pyplot as plt
 # sg_hid_ae = np.load('sg_hid_ae.npy')

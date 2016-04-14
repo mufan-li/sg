@@ -125,7 +125,8 @@ class nnet2(object):
 				T.log(self.output)[T.nonzero(y)]
 			) - T.mean(
 				T.log(1 - self.output)[T.nonzero(1 - y)]
-			)
+			) 
+			# + relu(T.sum(T.round(self.output))-T.sum(y))
 
 	def error(self,y):
 		return T.mean(T.neq(self.outclass, T.argmax(y, axis=1)))
