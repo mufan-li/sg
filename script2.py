@@ -93,7 +93,7 @@ sgdata_predict_rbm, rbm = run_rbm(sgdata_matrix,
 
 # AE
 sg_predict_ae, sg_hid_ae = run_dA(sgdata_matrix,
-					learning_rate = 1e-4, training_epochs = 100,
+					learninglb_rate = 1e-4, training_epochs = 100,
 					n_hidden = 100, batch_size = 100,
 					corruption_level = 0.3,
 					momentum_const = 0,
